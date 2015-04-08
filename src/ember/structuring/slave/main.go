@@ -16,7 +16,7 @@ func Run(args []string) {
 	var id string
 	var concurrent int
 	var pause int
-	flag.StringVar(&master, "master", "127.0.0.1", "master address")
+	flag.StringVar(&master, "master", "http://127.0.0.1:9000", "master address")
 	flag.StringVar(&id, "id", "", "slave id. gen a random one if nil")
 	flag.IntVar(&concurrent, "conc", 5, "goroutine number")
 	flag.IntVar(&pause, "i", 5, "pause interval if no task, in second")
@@ -33,19 +33,30 @@ func Run(args []string) {
 }
 
 func (p *Slave) run(concurrent int) {
-	for i := 0; i < concurrent; i++ {
+	for i := 0; i < concurrent - 1; i++ {
 		go p.routine()
+	}
+	p.routine()
+}
+
+func (p *Slave) routine() {
+	for {
+		err := p.invoke()
+		if err != nil {
+			println(err.Error())
+			time.Sleep(time.Second * 3)
+		}
 	}
 }
 
-func (p *Slave) routine() (err error) {
+func (p *Slave) invoke() (err error) {
 	for {
 		info, err := p.master.Pop(p.id)
 		if err != nil {
 			return err
 		}
 		if !info.Valid() {
-			time.Sleep(time.Second * 3)
+			return err
 		}
 		task := p.sites.NewTask(info)
 		err = task.Run(p.append)
