@@ -1,5 +1,9 @@
 package types
 
+import (
+	"time"
+)
+
 type Site interface {
 	NewTask(info TaskInfo) Task
 }
@@ -7,12 +11,15 @@ type Site interface {
 type Task interface {
 	Run(appender Appender) error
 }
+type Appender func(task TaskInfo) error
+
+func NewTaskInfo(url string, typ string, weight int) TaskInfo {
+	return TaskInfo{url, typ, weight, time.Now().UnixNano()}
+}
 
 func (p *TaskInfo) Valid() bool {
 	return p.Url != ""
 }
-
-type Appender func(task TaskInfo) error
 
 type TaskInfo struct {
 	Url     string `json:"url"`
