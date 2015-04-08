@@ -9,7 +9,11 @@ func (p *Song) Run(appender types.Appender) (err error) {
 	// extrat infos
 	// get similars
 	// new song task -> chan
-	return
+	if len(p.url) > 100 {
+		return
+	}
+	task := types.NewTaskInfo(p.url + "*", "song", 0)
+	return appender(task)
 }
 
 type Song struct {
