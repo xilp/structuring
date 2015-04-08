@@ -1,0 +1,67 @@
+[Song]
+	Title
+	Duration
+	Lyric
+	[Album]
+	Comments
+		*[Comment]
+	Likeds
+		*[User]
+	Similars
+		*[Song]
+	Authors
+		*[Author]
+	PlayLists
+		*[PlayList]
+
+[Album]
+	Title
+	Introduce
+	Authors
+		*[Author]
+	Tags
+		*Tag
+	Comments
+		*[Comment]
+
+[User]
+	Introduce
+	IsV
+	Area
+	Age
+	Snss
+		*Sns
+	Followers
+		*[User]
+	Following
+		*[User]
+	LatestSong
+		*[Song]
+	CreatedPlayLists
+		*[PlayList]
+	FavedPlayLists
+		*[PlayList]
+
+[PlayList]
+	Tags
+		*Tag
+	Likeds
+		*[User]
+	Similars
+		*[PlayList]
+	Comments
+		*[Comment]
+
+[Author]
+	User
+	Introduce
+	Hots
+		*[Song]
+	Albums
+		*[Album]
+	Similars
+		*[Song]
+
+[Comment]
+	[User]
+	Text
