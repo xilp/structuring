@@ -3,6 +3,7 @@ package master
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -52,33 +53,35 @@ func (p *Master) Slaves() (slaves []string, err error) {
 	return
 }
 
-func (p *Master) Done(slave string, task types.TaskInfo) (err error) {
+func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
 	p.locker.Lock()
 	defer p.locker.Unlock()
 	p.slaves[slave] = time.Now().UnixNano()
 
-	p.dones[task.Url] = true
+	delete(p.doings, info.Url)
+	p.dones[info.Url] = true
 
 	p.save()
 	return
 }
 
-func (p *Master) Push(slave string, task types.TaskInfo) (err error) {
+func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
+	fmt.Printf("appending %v\n", info)
 	p.locker.Lock()
 	defer p.locker.Unlock()
 	p.slaves[slave] = time.Now().UnixNano()
 
-	if p.dones[task.Url] {
+	if p.dones[info.Url] {
 		return
 	}
 
-	p.tasks = append(p.tasks, task)
+	p.tasks = append(p.tasks, info)
 
 	p.save()
 	return
 }
 
-func (p *Master) Pop(slave string) (task types.TaskInfo, err error) {
+func (p *Master) Pop(slave string) (info types.TaskInfo, err error) {
 	p.locker.Lock()
 	defer p.locker.Unlock()
 	p.slaves[slave] = time.Now().UnixNano()
@@ -87,8 +90,10 @@ func (p *Master) Pop(slave string) (task types.TaskInfo, err error) {
 		err = ErrNoTask
 		return
 	}
-	task = p.tasks[0]
+	info = p.tasks[0]
 	p.tasks = p.tasks[1:]
+
+	p.doings[info.Url] = info
 
 	p.save()
 	return
@@ -108,12 +113,15 @@ func (p *Master) Trait() map[string][]string {
 	st := slave.MasterTrait{}
 	trait := st.Trait()
 	trait["Fetch"] = []string{"url"}
+	trait["Slaves"] = []string{}
+	trait["Dones"] = []string{}
 	return trait
 }
 
 func NewMaster() *Master {
 	p := &Master {
 		dones: make(map[string]bool),
+		doings: make(map[string]types.TaskInfo),
 		slaves: make(map[string]int64),
 	}
 	p.load()
@@ -123,6 +131,7 @@ func NewMaster() *Master {
 type Master struct {
 	tasks []types.TaskInfo
 	dones map[string]bool
+	doings map[string]types.TaskInfo
 	slaves map[string]int64
 	locker sync.Mutex
 }

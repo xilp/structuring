@@ -22,10 +22,8 @@ type Song struct {
 
 func (p *Site) NewTask(info types.TaskInfo) types.Task {
 	switch info.Type {
-	case "song":
-		return &Song{info.Url}
 	}
-	return nil
+	return &Song{info.Url}
 }
 
 func New() *Site {

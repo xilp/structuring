@@ -5,27 +5,31 @@ import (
 	m1c "ember/structuring/sites/music.163.com"
 )
 
-func (p *Sites) NewTask(task types.TaskInfo) types.Task {
-	domain := domain(task.Url)
+func (p *Sites) NewTask(info types.TaskInfo) types.Task {
+	domain := domain(info.Url)
 	site, ok := (*p)[domain]
 	if !ok {
-		site := p.NewSite(domain)
+		site = p.NewSite(domain)
+		if site == nil {
+			return nil
+		}
 		(*p)[domain] = site
 	}
-	return site.NewTask(task)
+	task := site.NewTask(info)
+	return task
 }
 
 func domain(url string) string {
 	// TODO
-	return "musci.163.com"
+	return "music.163.com"
 }
 
-func (p *Sites) NewSite(domain string) types.Site {
+func (p *Sites) NewSite(domain string) (site types.Site) {
 	switch domain {
 	case "music.163.com":
-		return m1c.New()
+		site = m1c.New()
 	}
-	return nil
+	return
 }
 
 func NewSites() Sites {
