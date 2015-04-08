@@ -23,16 +23,16 @@ func Run(args []string) {
 
 	slave, err := NewSlave(master, id)
 	cli.Check(err)
-	slave.Run(concurrent)
+	slave.run(concurrent)
 }
 
-func (p *Slave) Run(concurrent int) {
+func (p *Slave) run(concurrent int) {
 	for i := 0; i < concurrent; i++ {
-		go p.run()
+		go p.routine()
 	}
 }
 
-func (p *Slave) run() (err error) {
+func (p *Slave) routine() (err error) {
 	for {
 		info, err := p.master.Pop(p.id)
 		if err != nil {
