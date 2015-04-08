@@ -9,7 +9,10 @@ func (p *Sites) NewTask(task types.TaskInfo) types.Task {
 	domain := domain(task.Url)
 	site, ok := (*p)[domain]
 	if !ok {
-		site := p.NewSite(domain)
+		site = p.NewSite(domain)
+		if site == nil {
+			return nil
+		}
 		(*p)[domain] = site
 	}
 	return site.NewTask(task)
@@ -17,7 +20,7 @@ func (p *Sites) NewTask(task types.TaskInfo) types.Task {
 
 func domain(url string) string {
 	// TODO
-	return "musci.163.com"
+	return "music.163.com"
 }
 
 func (p *Sites) NewSite(domain string) types.Site {

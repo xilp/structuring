@@ -1,6 +1,7 @@
 package slave
 
 import (
+	"errors"
 	"flag"
 	"math/rand"
 	"strconv"
@@ -9,6 +10,8 @@ import (
 	"ember/http/rpc"
 	"ember/structuring/types"
 )
+
+var ErrNoMatchSite = errors.New("no match site")
 
 func Run(args []string) {
 	flag := flag.NewFlagSet("slave", flag.ContinueOnError)
@@ -59,6 +62,9 @@ func (p *Slave) invoke() (err error) {
 			return err
 		}
 		task := p.sites.NewTask(info)
+		if task == nil {
+			return ErrNoMatchSite
+		}
 		err = task.Run(p.append)
 		if err != nil {
 			return err
