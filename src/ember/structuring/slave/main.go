@@ -3,6 +3,7 @@ package slave
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
@@ -43,8 +44,9 @@ func (p *Slave) run(concurrent int) {
 }
 
 func (p *Slave) routine() {
+	var err error
 	for {
-		err := p.invoke()
+		err = p.invoke()
 		if err != nil {
 			println(err.Error())
 			time.Sleep(time.Second * 3)
@@ -53,15 +55,17 @@ func (p *Slave) routine() {
 }
 
 func (p *Slave) invoke() (err error) {
+	var task types.Task
+	var info types.TaskInfo
 	for {
-		info, err := p.master.Pop(p.id)
+		info, err = p.master.Pop(p.id)
 		if err != nil {
 			return err
 		}
 		if !info.Valid() {
 			return err
 		}
-		task := p.sites.NewTask(info)
+		task = p.sites.NewTask(info)
 		if task == nil {
 			return ErrNoMatchSite
 		}
@@ -69,12 +73,14 @@ func (p *Slave) invoke() (err error) {
 		if err != nil {
 			return err
 		}
+		fmt.Printf("done: %v\n", info)
+		p.master.Done(p.id, info)
 	}
 }
 
-func (p *Slave) append(task types.TaskInfo) (err error) {
-	// TODO
-	return
+func (p *Slave) append(info types.TaskInfo) (err error) {
+	fmt.Printf("appending: %v\n", info)
+	return p.master.Push(p.id, info)
 }
 
 func NewSlave(addr string, id string) (p *Slave, err error) {
@@ -94,9 +100,9 @@ type Slave struct {
 }
 
 type Master struct {
-	Done func(slave string, task types.TaskInfo) error
-	Push func(slave string, task types.TaskInfo) error
-	Pop func(slave string) (task types.TaskInfo, err error)
+	Done func(slave string, info types.TaskInfo) error
+	Push func(slave string, info types.TaskInfo) error
+	Pop func(slave string) (info types.TaskInfo, err error)
 }
 
 func (p *MasterTrait) Trait() map[string][]string {
