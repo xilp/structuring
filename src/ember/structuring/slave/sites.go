@@ -5,8 +5,6 @@ import (
 	m1c "ember/structuring/sites/music.163.com"
 )
 
-// TODO: rpc
-
 func (p *Sites) NewTask(task types.TaskInfo) types.Task {
 	domain := domain(task.Url)
 	site, ok := (*p)[domain]
@@ -19,11 +17,11 @@ func (p *Sites) NewTask(task types.TaskInfo) types.Task {
 
 func domain(url string) string {
 	// TODO
-	return url
+	return "musci.163.com"
 }
 
-func (p *Sites) NewSite(url string) types.Site {
-	switch url {
+func (p *Sites) NewSite(domain string) types.Site {
+	switch domain {
 	case "music.163.com":
 		return m1c.New()
 	}

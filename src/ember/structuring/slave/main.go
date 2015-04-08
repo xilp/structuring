@@ -2,6 +2,8 @@ package slave
 
 import (
 	"flag"
+	"math/rand"
+	"strconv"
 	"time"
 	"ember/cli"
 	"ember/http/rpc"
@@ -20,6 +22,10 @@ func Run(args []string) {
 	flag.IntVar(&pause, "i", 5, "pause interval if no task, in second")
 
 	cli.ParseFlag(flag, args, "master", "id", "conc")
+
+	if id == "" {
+		id = strconv.Itoa(rand.Int())
+	}
 
 	slave, err := NewSlave(master, id)
 	cli.Check(err)
