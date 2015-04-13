@@ -73,7 +73,7 @@ func (p *Slave) invoke() (err error) {
 			return ErrNoMatchSite
 		}
 		//err = task.Run(p.append)
-		err = task.Run(p.parseTask)
+		err = task.Run(p.processTask)
 		if err != nil {
 			return err
 		}
@@ -82,43 +82,57 @@ func (p *Slave) invoke() (err error) {
 	}
 }
 
-var Host163 = "http://music.163.com"
-func (p *Slave) parseTask(info types.TaskInfo) (err error) {
-	fmt.Printf("info.Url: %s\n", info.Url)
-	ret, err := CrawlUrl(info.Url)
-	urlPre := `http://music.163.com/`
+func (p *Slave) processTask(info types.TaskInfo) (err error) {
+	ret, err := Crawl(info.Url)
+	if err != nil {
+		return err
+	}
 	for _, v := range ret {
-		info.Url = urlPre + v
+		info.Url = Host163 + v
 		p.master.Push(p.id, info)
 	}
 	return err
 }
 
-func CrawlUrl(url string)(ret []string, err error) {
-	body, err := FetchUrl(url)
+func Crawl(url string)(ret []string, err error) {
+	body, err := fetchHtml(url)
 	if err != nil {
-		return
+		return nil, err
 	}
+	return extractUrl(body)
+}
+
+func extractUrl(body string) (ret []string, err error) {
 	pattern := `song\?id=[\d]+`
 	reg := regexp.MustCompile(pattern)
 	return reg.FindAllString(body, -1), err
 }
 
-func FetchUrl(url string)(body string, err error) {
-	var resp *http.Response
-	resp, err = http.Head(Host163)
-	if err != nil {
-		return
+func getCookie(host string) (err error) {
+	for i := 0; i < 3; i++ {
+		resp, err := http.Head(host)
+		if err != nil {
+			continue
+		}
+		cookie = resp.Header.Get("Set-Cookie")
+		break
 	}
-	cookie := resp.Header.Get("Set-Cookie")
+	return err
+}
 
+func fetchHtml(url string) (body string, err error) {
+	if cookie == "" {
+		err = getCookie(Host163)
+		if err != nil {
+			return "", err
+		}
+	}
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Cookie", cookie)
 	client := &http.Client{}
-	resp, err = client.Do(req)
+	resp, err := client.Do(req)
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
-	_ = data
 	return string(data), err
 }
 
@@ -159,3 +173,8 @@ func (p *MasterTrait) Trait() map[string][]string {
 
 type MasterTrait struct {
 }
+
+const (
+	Host163 = `http://music.163.com/`
+)
+var cookie = ""
