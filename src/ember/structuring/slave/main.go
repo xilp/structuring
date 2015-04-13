@@ -87,8 +87,9 @@ func (p *Slave) processTask(info types.TaskInfo) (err error) {
 	if err != nil {
 		return err
 	}
+	host := Domain(info.Url)
 	for _, v := range ret {
-		info.Url = Host163 + v
+		info.Url = "http://" + host + "/"+ v
 		p.master.Push(p.id, info)
 	}
 	return err
@@ -122,7 +123,8 @@ func getCookie(host string) (err error) {
 
 func fetchHtml(url string) (body string, err error) {
 	if cookie == "" {
-		err = getCookie(Host163)
+		host := Domain(url)
+		err = getCookie(host)
 		if err != nil {
 			return "", err
 		}
@@ -174,7 +176,4 @@ func (p *MasterTrait) Trait() map[string][]string {
 type MasterTrait struct {
 }
 
-const (
-	Host163 = `http://music.163.com/`
-)
 var cookie = ""

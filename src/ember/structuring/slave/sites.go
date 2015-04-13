@@ -6,7 +6,7 @@ import (
 )
 
 func (p *Sites) NewTask(info types.TaskInfo) types.Task {
-	domain := domain(info.Url)
+	domain := Domain(info.Url)
 	site, ok := (*p)[domain]
 	if !ok {
 		site = p.NewSite(domain)
@@ -19,7 +19,8 @@ func (p *Sites) NewTask(info types.TaskInfo) types.Task {
 	return task
 }
 
-func domain(url string) string {
+//func domain(url string) string {
+func Domain(url string) string {
 	// TODO
 	return "music.163.com"
 }
