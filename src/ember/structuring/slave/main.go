@@ -10,6 +10,9 @@ import (
 	"ember/cli"
 	"ember/http/rpc"
 	"ember/structuring/types"
+	"regexp"
+	"net/http"
+	"io/ioutil"
 )
 
 var ErrNoMatchSite = errors.New("no match site")
@@ -69,13 +72,54 @@ func (p *Slave) invoke() (err error) {
 		if task == nil {
 			return ErrNoMatchSite
 		}
-		err = task.Run(p.append)
+		//err = task.Run(p.append)
+		err = task.Run(p.parseTask)
 		if err != nil {
 			return err
 		}
 		fmt.Printf("done: %v\n", info)
 		p.master.Done(p.id, info)
 	}
+}
+
+var Host163 = "http://music.163.com"
+func (p *Slave) parseTask(info types.TaskInfo) (err error) {
+	fmt.Printf("info.Url: %s\n", info.Url)
+	ret, err := CrawlUrl(info.Url)
+	urlPre := `http://music.163.com/`
+	for _, v := range ret {
+		info.Url = urlPre + v
+		p.master.Push(p.id, info)
+	}
+	return err
+}
+
+func CrawlUrl(url string)(ret []string, err error) {
+	body, err := FetchUrl(url)
+	if err != nil {
+		return
+	}
+	pattern := `song\?id=[\d]+`
+	reg := regexp.MustCompile(pattern)
+	return reg.FindAllString(body, -1), err
+}
+
+func FetchUrl(url string)(body string, err error) {
+	var resp *http.Response
+	resp, err = http.Head(Host163)
+	if err != nil {
+		return
+	}
+	cookie := resp.Header.Get("Set-Cookie")
+
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("Cookie", cookie)
+	client := &http.Client{}
+	resp, err = client.Do(req)
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	_ = data
+	return string(data), err
 }
 
 func (p *Slave) append(info types.TaskInfo) (err error) {
