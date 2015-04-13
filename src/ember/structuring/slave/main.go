@@ -83,7 +83,7 @@ func (p *Slave) invoke() (err error) {
 }
 
 func (p *Slave) processTask(info types.TaskInfo) (err error) {
-	ret, err := Crawl(info.Url)
+	ret, err := p.Crawl(info.Url)
 	if err != nil {
 		return err
 	}
@@ -95,21 +95,21 @@ func (p *Slave) processTask(info types.TaskInfo) (err error) {
 	return err
 }
 
-func Crawl(url string)(ret []string, err error) {
-	body, err := fetchHtml(url)
+func (p *Slave) Crawl(url string)(ret []string, err error) {
+	body, err := p.fetchHtml(url)
 	if err != nil {
 		return nil, err
 	}
-	return extractUrl(body)
+	return p.extractUrl(body)
 }
 
-func extractUrl(body string) (ret []string, err error) {
+func (p *Slave) extractUrl(body string) (ret []string, err error) {
 	pattern := `song\?id=[\d]+`
 	reg := regexp.MustCompile(pattern)
 	return reg.FindAllString(body, -1), err
 }
 
-func getCookie(host string) (err error) {
+func (p *Slave) getCookie(host string) (cookie string, err error) {
 	for i := 0; i < 3; i++ {
 		resp, err := http.Head(host)
 		if err != nil {
@@ -118,19 +118,22 @@ func getCookie(host string) (err error) {
 		cookie = resp.Header.Get("Set-Cookie")
 		break
 	}
-	return err
+	return cookie, err
 }
 
-func fetchHtml(url string) (body string, err error) {
+func (p *Slave) fetchHtml(url string) (body string, err error) {
+	domain := Domain(url)
+	cookie := p.sites[domain].cookie
 	if cookie == "" {
-		host := Domain(url)
-		err = getCookie(host)
+		cookie, err = p.getCookie("http://" + domain + "/")
 		if err != nil {
 			return "", err
 		}
+		p.sites[domain].cookie = cookie
 	}
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Cookie", cookie)
+	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	defer resp.Body.Close()
@@ -176,4 +179,4 @@ func (p *MasterTrait) Trait() map[string][]string {
 type MasterTrait struct {
 }
 
-var cookie = ""
+//var cookie = ""

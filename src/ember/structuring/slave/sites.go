@@ -1,6 +1,7 @@
 package slave
 
 import (
+	//"fmt"
 	"ember/structuring/types"
 	m1c "ember/structuring/sites/music.163.com"
 )
@@ -15,20 +16,20 @@ func (p *Sites) NewTask(info types.TaskInfo) types.Task {
 		}
 		(*p)[domain] = site
 	}
-	task := site.NewTask(info)
+	//fmt.Println("%#v", site)
+	task := site.site.NewTask(info)
 	return task
 }
 
-//func domain(url string) string {
 func Domain(url string) string {
 	// TODO
 	return "music.163.com"
 }
 
-func (p *Sites) NewSite(domain string) (site types.Site) {
+func (p *Sites) NewSite(domain string) (site *SiteInfo) {
 	switch domain {
 	case "music.163.com":
-		site = m1c.New()
+		return &SiteInfo{site: m1c.New()}
 	}
 	return
 }
@@ -37,4 +38,9 @@ func NewSites() Sites {
 	return Sites{}
 }
 
-type Sites map[string]types.Site
+type Sites map[string]*SiteInfo
+
+type SiteInfo struct {
+	site types.Site
+	cookie string
+}
