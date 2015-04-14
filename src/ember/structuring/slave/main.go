@@ -99,10 +99,15 @@ func (p *Slave) Crawl(url string)(ret []string, err error) {
 	if err != nil {
 		return nil, err
 	}
-	//pv, err:= p.parseHtml(body)
-	p.parseHtml(body)
+	pv, err := p.html.parse(body)
+	if err != nil {
+		return nil, err
+	}
 	//fmt.Printf("[pv : %#v]\n", pv)
-	return p.extractUrl(body)
+	for i, v := range pv {
+		println(i, v)
+	}
+	return p.url.extract(body)
 }
 
 func (p *Slave) getCookie(host string) (cookie string, err error) {
@@ -148,7 +153,7 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	if err != nil {
 		return
 	}
-	p = &Slave{id, NewSites(), master}
+	p = &Slave{id, NewSites(), master, NewUrl(), NewHtml()}
 	return
 }
 
@@ -156,6 +161,8 @@ type Slave struct {
 	id string
 	sites Sites
 	master Master
+	url Url
+	html Html
 }
 
 type Master struct {
