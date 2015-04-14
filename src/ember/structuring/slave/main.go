@@ -71,13 +71,10 @@ func (p *Slave) invoke() (err error) {
 		if task == nil {
 			return ErrNoMatchSite
 		}
-		//err = task.Run(p.append)
 		err = task.Run(p.processTask)
-		/*
 		if err != nil {
 			return err
 		}
-		*/
 		fmt.Printf("done: %v\n", info)
 		p.master.Done(p.id, info)
 	}

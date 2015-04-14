@@ -64,12 +64,12 @@ func (p *Html) parse(body string) (ret []string, err error) {
 		idx = strings.Index(midBody, "发行公司：")
 		idx = idx + len(ret[0])  + 3
 		note = midBody[idx:len(midBody) - 4]
+		note = strings.Replace(note , "\n", "", -1)
 	} else {
 		idx = strings.Index(midBody, "发行时间：")
 		idx = idx + len("发行时间：") + len(issueDate)  + 3
 		note = midBody[idx:len(midBody) - 4]
-		//println(midBody)
-		//println(note)
+		note = strings.Replace(note , "\n", "", -1)
 	}
 
 
