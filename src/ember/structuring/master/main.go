@@ -65,9 +65,13 @@ func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
 	return
 }
 
+var count = 0
 func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
 	fmt.Printf("appending %v\n", info)
 	p.locker.Lock()
+
+	count ++;
+	fmt.Printf("[count:%d]\n", count)
 	defer p.locker.Unlock()
 	p.slaves[slave] = time.Now().UnixNano()
 
