@@ -54,13 +54,24 @@ func (p *Html) parse(body string) (ret []string, err error) {
 	pattern = `发行公司：([^。]+)`
 	reg = regexp.MustCompile(pattern)
 	ret = reg.FindAllString(midBody, -1)
-	idx = strings.Index(ret[0], "发行公司：")
-	idx  = idx + len("发行公司：")
-	issueCompany := ret[0][idx:]
+	var	issueCompany = ""
+	var note = ""
+	if ret != nil {
+		idx = strings.Index(ret[0], "发行公司：")
+		idx  = idx + len("发行公司：")
+		issueCompany = ret[0][idx:]
 
-	idx = strings.Index(midBody, "发行公司：")
-	idx = idx + len(ret[0])  + 3
-	note := midBody[idx:len(midBody) - 4]
+		idx = strings.Index(midBody, "发行公司：")
+		idx = idx + len(ret[0])  + 3
+		note = midBody[idx:len(midBody) - 4]
+	} else {
+		idx = strings.Index(midBody, "发行时间：")
+		idx = idx + len("发行时间：") + len(issueDate)  + 3
+		note = midBody[idx:len(midBody) - 4]
+		//println(midBody)
+		//println(note)
+	}
+
 
 	pattern = `<div class="bd bd-open f-brk f-ib">([^\/]+)`
 	reg = regexp.MustCompile(pattern)
