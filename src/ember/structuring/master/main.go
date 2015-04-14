@@ -27,6 +27,7 @@ func Run(args []string) {
 	}
 	err = rpc.Run(port)
 	cli.Check(err)
+	p.scan()
 }
 
 func (p *Master) Fetch(url string) error {
@@ -79,6 +80,10 @@ func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
 		return
 	}
 
+	if _, ok := p.doings[info.Url]; ok {
+		return
+	}
+
 	p.tasks = append(p.tasks, info)
 
 	p.save()
@@ -111,6 +116,18 @@ func (p *Master) save() (err error) {
 func (p *Master) load() (err error) {
 	// TODO
 	return
+}
+
+func (p *Master) scan() {
+	go func() {
+		for k, v := range p.doings {
+			if time.Since(time.Unix(time.Unix(0, v.Created).Unix(), 0)) >= time.Minute {
+				p.Push("repush", v)
+				delete(p.doings, k)
+			}
+		}
+		time.Sleep(time.Minute)
+	}()
 }
 
 func (p *Master) Trait() map[string][]string {
