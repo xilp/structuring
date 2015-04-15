@@ -71,7 +71,7 @@ func (p *Slave) invoke() (err error) {
 		if task == nil {
 			return ErrNoMatchSite
 		}
-		//err = task.Run(p.append)
+		fmt.Printf("start: %v\n", info)
 		err = task.Run(p.processTask)
 		if err != nil {
 			return err
@@ -99,14 +99,11 @@ func (p *Slave) Crawl(url string)(ret []string, err error) {
 	if err != nil {
 		return nil, err
 	}
-	pv, err := p.html.parse(body)
-	if err != nil {
+	pv, err := p.html.parse([]byte(body))
+	if pv == nil || err != nil {
 		return nil, err
 	}
-	//fmt.Printf("[pv : %#v]\n", pv)
-	for i, v := range pv {
-		println(i, v)
-	}
+	p.data.write(url, pv, 0)
 	return p.url.extract(body)
 }
 
@@ -153,7 +150,7 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	if err != nil {
 		return
 	}
-	p = &Slave{id, NewSites(), master, NewUrl(), NewHtml()}
+	p = &Slave{id, NewSites(), master, NewUrl(), NewHtml(), NewData()}
 	return
 }
 
@@ -163,6 +160,7 @@ type Slave struct {
 	master Master
 	url Url
 	html Html
+	data Data
 }
 
 type Master struct {

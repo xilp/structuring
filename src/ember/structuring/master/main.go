@@ -80,7 +80,7 @@ func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
 		return
 	}
 
-	if _, ok := p.doings[info.Url]; ok {
+	if _, ok := p.doings[info.Url] ; ok {
 		return
 	}
 

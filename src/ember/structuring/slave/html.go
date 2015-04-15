@@ -1,84 +1,97 @@
 package slave
 
 import (
-	"strings"
+	"bytes"
 	"regexp"
 )
 
-func (p *Html) parse(body string) (ret []string, err error) {
-	keywords := `<meta name="keywords" content="为爱痴狂，收获 新歌+精选，刘若英，奶茶，Ren'e Liu，2001-06-01，滚石唱片" />`
-	description := `<meta name="description" content="歌手：刘若英。所属专辑：收获 新歌+精选。
-		发行时间：2001-06-01。发行公司：滚石唱片。 在刘若英这张精选辑中，除了新歌、过去的歌以外，
-		滚石唱片还特别重新Mastering，加进了刘若英这些年来的工作、生活的声音纪实，
-		让整张精选辑听来更有新意，并且更贴近奶茶的工作与生活。虽然可能只是一个机场的环境音、
-		拍戏片场的现场音，或者是奶茶和制作人对Key的录音室记录，然而这些都是刘若英，工作中的刘若英，
-		生活的刘若英，我们因而听见她的歌曲以外，另外一个有趣、生动的刘若英。而在正版专辑的POWER CD中，
-		也特别收录了刘若英98年纯净影像代表作“很爱很爱你”的Music Video，
-		以及历年来奶茶唱片专辑电视CF广告的精华版，以回馈给一直以来支持奶茶的歌迷朋友。。" />`
-	_ = keywords
-	_ = description
+func (p *Html) splitHtml(content, key []byte, pattern string ) (word []byte) {
+	var idx = 0
+	reg := regexp.MustCompile(pattern)
+	b := reg.Find(content)
+	if b != nil {
+		idx = bytes.Index(b, key)
+		idx  = idx + len(key)
+		word = b[idx:]
+	} else {
+		word = nil
+	}
+	return word
+}
+
+func (p *Html) parse(body []byte) (ret []string, err error) {
+	var songName, singer, album, issueDate, issueCompany, note, songLyric []byte
+	var word []byte
+	var idx = 0
+	var b []byte
 
 	pattern := `<meta name="keywords" content="([^，]+)`
-	reg := regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	idx := strings.Index(ret[0], "content=\"")
-	idx  = idx + len("content=\"")
-	songName := ret[0][idx:]
+	key := []byte("content=\"")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		songName = word
+	}
 
 	pattern = `<meta name="description" content="([^。]+)`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	idx = strings.Index(ret[0], "content=\"歌手：")
-	idx  = idx + len("content=\"歌手：")
-	singer := ret[0][idx:]
+	key = []byte("content=\"歌手：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		singer = word
+	}
 
-	pattern = `<meta name="description" content="([^/>]+)`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	midBody := ret[0]
+	pattern = `<meta name="description" content="([^>]+)>`
+	reg := regexp.MustCompile(pattern)
+	b = reg.Find(body)
+	midBody := b
 
 	pattern = `所属专辑：([^。]+)`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(midBody, -1)
-	idx = strings.Index(ret[0], "所属专辑：")
-	idx  = idx + len("所属专辑：")
-	album := ret[0][idx:]
+	key = []byte("所属专辑：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		album = word
+	}
 
 	pattern = `发行时间：([^。]+)`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(midBody, -1)
-	idx = strings.Index(ret[0], "发行时间：")
-	idx  = idx + len("发行时间：")
-	issueDate := ret[0][idx:]
+	key = []byte("发行时间：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		issueDate = word
+	}
 
 	pattern = `发行公司：([^。]+)`
+	key = []byte("发行公司：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		issueCompany = word
+	}
+
+	pattern = `。([^。]+)。"`
 	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(midBody, -1)
-	idx = strings.Index(ret[0], "发行公司：")
-	idx  = idx + len("发行公司：")
-	issueCompany := ret[0][idx:]
+	b = reg.Find(midBody)
+	if b != nil {
+		idx  = 3
+		note = b[idx:len(b) - 1]
+		note = bytes.Replace(note , []byte("\n"), []byte(""), -1)
+	}
 
-	idx = strings.Index(midBody, "发行公司：")
-	idx = idx + len(ret[0])  + 3
-	note := midBody[idx:len(midBody) - 4]
-
-	pattern = `<div class="bd bd-open f-brk f-ib">([^\/]+)`
+	pattern = `<div class="bd bd-open f-brk f-ib">([^\/]+)</div>`
 	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	idx  = len(`<div class="bd bd-open f-brk f-ib">`)
-	songLyric := ret[0][idx + 1:len(ret[0]) - 2]
-	songLyric = strings.Replace(songLyric, `<div id="flag_more" class="f-hide">`, "", -1)
-	songLyric = strings.Replace(songLyric, `<br>`, ",", -1)
-	songLyric = strings.Replace(songLyric, "\n", "", -1)
+	b = reg.Find(body)
+	if b != nil {
+		idx  = len(`<div class="bd bd-open f-brk f-ib">`)
+		songLyric = b[idx + 1:len(b) - 6]
+		songLyric = bytes.Replace(songLyric, []byte(`<div id="flag_more" class="f-hide">`), []byte(""), -1)
+		songLyric = bytes.Replace(songLyric, []byte(`<br>`), []byte(","), -1)
+		songLyric = bytes.Replace(songLyric, []byte("\n"), []byte(""), -1)
+	}
 
-	ret = nil
-	ret = append(ret, songName)
-	ret = append(ret, singer)
-	ret = append(ret, album)
-	ret = append(ret, issueDate)
-	ret = append(ret, issueCompany)
-	ret = append(ret, note)
-	ret = append(ret, songLyric)
+	ret = append(ret, string(songName))
+	ret = append(ret, string(singer))
+	ret = append(ret, string(album))
+	ret = append(ret, string(issueDate))
+	ret = append(ret, string(issueCompany))
+	ret = append(ret, string(note))
+	ret = append(ret, string(songLyric))
 
 	return ret, err
 }
