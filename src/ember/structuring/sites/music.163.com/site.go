@@ -28,8 +28,11 @@ func (p *Site) NewTask(info types.TaskInfo) types.Task {
 }
 
 func New() *Site {
-	return &Site{}
+	return &Site{NewUrl(), NewHtml(), NewCrawl()}
 }
 
 type Site struct {
+	url Url
+	html Html
+	crawl Crawl
 }
