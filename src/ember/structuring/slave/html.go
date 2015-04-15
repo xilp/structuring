@@ -5,68 +5,36 @@ import (
 	"regexp"
 )
 
-func (p *Html) splitHtml(content, key []byte, pattern string ) (word []byte) {
+func (p *Html) splitHtml(content, key []byte, pattern string, word *[]byte) () {
 	var idx = 0
 	reg := regexp.MustCompile(pattern)
 	b := reg.Find(content)
 	if b != nil {
 		idx = bytes.Index(b, key)
 		idx  = idx + len(key)
-		word = b[idx:]
-	} else {
-		word = nil
+		*word = b[idx:]
 	}
-	return word
 }
 
 func (p *Html) parse(body []byte) (ret []string, err error) {
 	var songName, singer, album, issueDate, issueCompany, note, songLyric []byte
-	var word []byte
 	var idx = 0
 	var b []byte
 
-	pattern := `<meta name="keywords" content="([^，]+)`
-	key := []byte("content=\"")
-	word = p.splitHtml(body, key, pattern)
-	if word != nil {
-		songName = word
+	p.splitHtml(body, []byte("content=\""), `<meta name="keywords" content="([^，]+)`, &songName)
+	p.splitHtml(body, []byte("content=\"歌手："), `<meta name="description" content="([^。]+)`, &singer)
+
+	reg := regexp.MustCompile(`<meta name="description" content="([^>]+)>`)
+	midBody := reg.Find(body)
+	if midBody == nil {
+		return nil, err
 	}
 
-	pattern = `<meta name="description" content="([^。]+)`
-	key = []byte("content=\"歌手：")
-	word = p.splitHtml(body, key, pattern)
-	if word != nil {
-		singer = word
-	}
+	p.splitHtml(midBody, []byte("所属专辑："), `所属专辑：([^。]+)`, &album)
+	p.splitHtml(midBody, []byte("发行时间："), `发行时间：([^。]+)`, &issueDate)
+	p.splitHtml(midBody, []byte("发行公司："), `发行公司：([^。]+)`, &issueCompany)
 
-	pattern = `<meta name="description" content="([^>]+)>`
-	reg := regexp.MustCompile(pattern)
-	b = reg.Find(body)
-	midBody := b
-
-	pattern = `所属专辑：([^。]+)`
-	key = []byte("所属专辑：")
-	word = p.splitHtml(body, key, pattern)
-	if word != nil {
-		album = word
-	}
-
-	pattern = `发行时间：([^。]+)`
-	key = []byte("发行时间：")
-	word = p.splitHtml(body, key, pattern)
-	if word != nil {
-		issueDate = word
-	}
-
-	pattern = `发行公司：([^。]+)`
-	key = []byte("发行公司：")
-	word = p.splitHtml(body, key, pattern)
-	if word != nil {
-		issueCompany = word
-	}
-
-	pattern = `。([^。]+)。"`
-	reg = regexp.MustCompile(pattern)
+	reg = regexp.MustCompile(`。([^。]+)。"`)
 	b = reg.Find(midBody)
 	if b != nil {
 		idx  = 3
@@ -74,8 +42,7 @@ func (p *Html) parse(body []byte) (ret []string, err error) {
 		note = bytes.Replace(note , []byte("\n"), []byte(""), -1)
 	}
 
-	pattern = `<div class="bd bd-open f-brk f-ib">([^\/]+)</div>`
-	reg = regexp.MustCompile(pattern)
+	reg = regexp.MustCompile(`<div class="bd bd-open f-brk f-ib">([^\/]+)</div>`)
 	b = reg.Find(body)
 	if b != nil {
 		idx  = len(`<div class="bd bd-open f-brk f-ib">`)
