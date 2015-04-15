@@ -11,7 +11,8 @@ type Site interface {
 type Task interface {
 	Run(appender Appender) error
 }
-type Appender func(task TaskInfo) error
+
+type Appender func(info TaskInfo) error
 
 func NewTaskInfo(url string, typ string, weight int) TaskInfo {
 	return TaskInfo{url, typ, weight, time.Now().UnixNano()}
