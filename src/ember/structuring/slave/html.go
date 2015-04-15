@@ -1,98 +1,99 @@
 package slave
 
 import (
-	"strings"
+	"bytes"
+	"fmt"
 	"regexp"
 )
 
-func (p *Html) parse(body string) (ret []string, err error) {
+func (p *Html) splitHtml(content, key []byte, pattern string ) (word []byte) {
+	var idx = 0
+	reg := regexp.MustCompile(pattern)
+	b := reg.Find(content)
+	if b != nil {
+		idx = bytes.Index(b, key)
+		idx  = idx + len(key)
+		word = b[idx:]
+	} else {
+		word = nil
+	}
+	return word
+}
+
+func (p *Html) parse(body []byte) (ret []string, err error) {
+	var songName, singer, album, issueDate, issueCompany, note, songLyric []byte
+	var word []byte
+	var idx = 0
+	var b []byte
 
 	pattern := `<meta name="keywords" content="([^，]+)`
-	reg := regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	var songName = ""
-	var idx = 0
-	if ret  != nil {
-		idx = strings.Index(ret[0], "content=\"")
-		idx  = idx + len("content=\"")
-		songName = ret[0][idx:]
+	key := []byte("content=\"")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		songName = word
 	}
 
 	pattern = `<meta name="description" content="([^。]+)`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	var singer = ""
-	if ret != nil {
-		idx = strings.Index(ret[0], "content=\"歌手：")
-		idx = idx + len("content=\"歌手：")
-		singer = ret[0][idx:]
+	key = []byte("content=\"歌手：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		singer = word
 	}
 
 	pattern = `<meta name="description" content="([^>]+)>`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	midBody := ret[0]
+	reg := regexp.MustCompile(pattern)
+	b = reg.Find(body)
+	midBody := b
 
 	pattern = `所属专辑：([^。]+)`
-	var album = ""
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(midBody, -1)
-	if ret != nil {
-		idx = strings.Index(ret[0], "所属专辑：")
-		idx  = idx + len("所属专辑：")
-		album = ret[0][idx:]
+	key = []byte("所属专辑：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		album = word
 	}
 
 	pattern = `发行时间：([^。]+)`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(midBody, -1)
-	var issueDate = ""
-	if ret != nil {
-		idx = strings.Index(ret[0], "发行时间：")
-		idx  = idx + len("发行时间：")
-		issueDate = ret[0][idx:]
+	key = []byte("发行时间：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		issueDate = word
 	}
 
 	pattern = `发行公司：([^。]+)`
-	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(midBody, -1)
-	var	issueCompany = ""
-	if ret != nil {
-		idx = strings.Index(ret[0], "发行公司：")
-		idx  = idx + len("发行公司：")
-		issueCompany = ret[0][idx:]
+	key = []byte("发行公司：")
+	word = p.splitHtml(body, key, pattern)
+	if word != nil {
+		issueCompany = word
 	}
 
 	pattern = `。([^。]+)。"`
 	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(midBody, -1)
-	var note = ""
-	if ret != nil {
+	b = reg.Find(midBody)
+	if b != nil {
 		idx  = 3
-		note = ret[0][idx:len(ret[0]) - 1]
-		note = strings.Replace(note , "\n", "", -1)
+		note = b[idx:len(b) - 1]
+		note = bytes.Replace(note , []byte("\n"), []byte(""), -1)
 	}
 
 	pattern = `<div class="bd bd-open f-brk f-ib">([^\/]+)</div>`
 	reg = regexp.MustCompile(pattern)
-	ret = reg.FindAllString(body, -1)
-	var songLyric = ""
-	if ret != nil  {
+	b = reg.Find(body)
+	if b != nil {
 		idx  = len(`<div class="bd bd-open f-brk f-ib">`)
-		songLyric = ret[0][idx + 1:len(ret[0]) - 6]
-		songLyric = strings.Replace(songLyric, `<div id="flag_more" class="f-hide">`, "", -1)
-		songLyric = strings.Replace(songLyric, `<br>`, ",", -1)
-		songLyric = strings.Replace(songLyric, "\n", "", -1)
+		songLyric = b[idx + 1:len(b) - 6]
+		songLyric = bytes.Replace(songLyric, []byte(`<div id="flag_more" class="f-hide">`), []byte(""), -1)
+		songLyric = bytes.Replace(songLyric, []byte(`<br>`), []byte(","), -1)
+		songLyric = bytes.Replace(songLyric, []byte("\n"), []byte(""), -1)
 	}
 
-	ret = nil
-	ret = append(ret, songName)
-	ret = append(ret, singer)
-	ret = append(ret, album)
-	ret = append(ret, issueDate)
-	ret = append(ret, issueCompany)
-	ret = append(ret, note)
-	ret = append(ret, songLyric)
+	ret = append(ret, string(songName))
+	ret = append(ret, string(singer))
+	ret = append(ret, string(album))
+	ret = append(ret, string(issueDate))
+	ret = append(ret, string(issueCompany))
+	ret = append(ret, string(note))
+	ret = append(ret, string(songLyric))
+	fmt.Printf("[ret:%#v]\n", ret)
 
 	return ret, err
 }

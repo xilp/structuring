@@ -99,7 +99,7 @@ func (p *Slave) Crawl(url string)(ret []string, err error) {
 	if err != nil {
 		return nil, err
 	}
-	pv, err := p.html.parse(body)
+	pv, err := p.html.parse([]byte(body))
 	if pv == nil || err != nil {
 		return nil, err
 	}
