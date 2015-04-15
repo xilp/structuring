@@ -3,6 +3,7 @@
 travis: all test
 
 all:
+	go clean ./...
 	go install -v ./...
 
 test:

@@ -1,23 +1,30 @@
-package structuring
+package m1c
 
-func (p *Song) Run(appender Appender) (err error) {
+import (
+	"ember/structuring/types"
+)
+
+func (p *Song) Run(appender types.Appender) (err error) {
 	// TODO
 	// extrat infos
 	// get similars
 	// new song task -> chan
-	return
+	if len(p.url) > 100 {
+		return
+	}
+	//task := types.NewTaskInfo(p.url + "*", "song", 0)
+	task := types.NewTaskInfo(p.url, "song", 0)
+	return appender(task)
 }
 
 type Song struct {
 	url string
 }
 
-func (p *Site) NewTask(url string, typ string) Task {
-	switch typ {
-	case "song":
-		return &Song{url}
+func (p *Site) NewTask(info types.TaskInfo) types.Task {
+	switch info.Type {
 	}
-	return nil
+	return &Song{info.Url}
 }
 
 func New() *Site {
@@ -26,8 +33,3 @@ func New() *Site {
 
 type Site struct {
 }
-
-type Task interface {
-	Run(appender Appender) error
-}
-type Appender func(url string, typ string, weight int) error
