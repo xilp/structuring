@@ -1,8 +1,8 @@
-.PHONY: all test travis
+.PHONY: all build test
 
-travis: all test
+all: build test
 
-all:
+build:
 	go clean ./...
 	go install -v ./...
 
