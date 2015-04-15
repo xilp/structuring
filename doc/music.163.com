@@ -60,7 +60,7 @@
 	Albums
 		*[Album]
 	Similars
-		*[Song]
+		*[Author]
 
 [Comment]
 	[User]
