@@ -2,7 +2,6 @@ package slave
 
 import (
 	"bytes"
-	"fmt"
 	"regexp"
 )
 
@@ -93,7 +92,6 @@ func (p *Html) parse(body []byte) (ret []string, err error) {
 	ret = append(ret, string(issueCompany))
 	ret = append(ret, string(note))
 	ret = append(ret, string(songLyric))
-	fmt.Printf("[ret:%#v]\n", ret)
 
 	return ret, err
 }
