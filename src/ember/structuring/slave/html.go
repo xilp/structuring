@@ -1,6 +1,7 @@
 package slave
 
 import (
+	"fmt"
 	"strings"
 	"regexp"
 )
@@ -18,6 +19,7 @@ func (p *Html) parse(body string) (ret []string, err error) {
 	_ = keywords
 	_ = description
 
+
 	pattern := `<meta name="keywords" content="([^，]+)`
 	reg := regexp.MustCompile(pattern)
 	ret = reg.FindAllString(body, -1)
@@ -32,10 +34,16 @@ func (p *Html) parse(body string) (ret []string, err error) {
 	idx  = idx + len("content=\"歌手：")
 	singer := ret[0][idx:]
 
-	pattern = `<meta name="description" content="([^/>]+)`
+	//body = `<meta name="description" content="歌手：AaA。所属专辑：ソウルエッジボーイ/キモノジェットガール。发行时间：2006-07-19。发行公司：エイベックス.トラックス。网易云音乐是一款专注于发现与分享的音乐产品，依托专业音乐人、DJ、好友推荐及社交功能，为用户打造全新的音乐生活。" />`
+	//body = `<meta name="description" content="歌手：何耀珊。所属专辑：Without Love。发行时间：2004-10-06。发行公司：Virgin Records。网易云音乐是一款专注于发现与分享的音乐产品，依托专业音乐人、DJ、好友推荐及社交功能，为用户打造全新的音乐生活。" />`
+	body = `<meta name="description" content="歌手：何耀珊。所属专辑：China Wine。发行时间：2007-07-24。发行公司：Carnival House Records Inc./JH Music, Inc。2007年何耀珊与美国歌手Wyclef Jean, Elephant Man &amp; Tony Matteron合作的单曲，MV里面Sun颠覆以往给人的印象，大跳艳舞，造型抢眼，媒体粉丝火热关注...并且热浪持续蔓延至亚洲。" />`
+
+	//pattern = `<meta name="description" content="([^/>]+)`
+	pattern = `<meta name="description" content="([^>]+)>`
 	reg = regexp.MustCompile(pattern)
 	ret = reg.FindAllString(body, -1)
 	midBody := ret[0]
+	//println(midBody)
 
 	pattern = `所属专辑：([^。]+)`
 	reg = regexp.MustCompile(pattern)
@@ -47,6 +55,9 @@ func (p *Html) parse(body string) (ret []string, err error) {
 	pattern = `发行时间：([^。]+)`
 	reg = regexp.MustCompile(pattern)
 	ret = reg.FindAllString(midBody, -1)
+	if ret == nil {
+		return ret, err
+	}
 	idx = strings.Index(ret[0], "发行时间：")
 	idx  = idx + len("发行时间：")
 	issueDate := ret[0][idx:]
@@ -62,25 +73,40 @@ func (p *Html) parse(body string) (ret []string, err error) {
 		issueCompany = ret[0][idx:]
 
 		idx = strings.Index(midBody, "发行公司：")
+		println(midBody)
+		println(idx)
+		println("len(midBody):", len(midBody))
+		if idx == -1 {
+			return ret, err
+		}
 		idx = idx + len(ret[0])  + 3
 		note = midBody[idx:len(midBody) - 4]
 		note = strings.Replace(note , "\n", "", -1)
 	} else {
+		return ret, err
+		/*
 		idx = strings.Index(midBody, "发行时间：")
 		idx = idx + len("发行时间：") + len(issueDate)  + 3
 		note = midBody[idx:len(midBody) - 4]
 		note = strings.Replace(note , "\n", "", -1)
+		*/
 	}
 
 
-	pattern = `<div class="bd bd-open f-brk f-ib">([^\/]+)`
+	pattern = `<div class="bd bd-open f-brk f-ib">([^\/]+)</div>`
 	reg = regexp.MustCompile(pattern)
 	ret = reg.FindAllString(body, -1)
+	fmt.Printf("[ret:%#v]\n")
+	var songLyric = ""
+	//if ret != nil  {
 	idx  = len(`<div class="bd bd-open f-brk f-ib">`)
-	songLyric := ret[0][idx + 1:len(ret[0]) - 2]
+	println("idx:", idx)
+	println("ret[0]:", ret[0])
+	songLyric = ret[0][idx + 1:len(ret[0]) - 2]
 	songLyric = strings.Replace(songLyric, `<div id="flag_more" class="f-hide">`, "", -1)
 	songLyric = strings.Replace(songLyric, `<br>`, ",", -1)
 	songLyric = strings.Replace(songLyric, "\n", "", -1)
+	//}
 
 	ret = nil
 	ret = append(ret, songName)

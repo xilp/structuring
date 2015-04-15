@@ -71,6 +71,7 @@ func (p *Slave) invoke() (err error) {
 		if task == nil {
 			return ErrNoMatchSite
 		}
+		fmt.Printf("start: %v\n", info)
 		err = task.Run(p.processTask)
 		if err != nil {
 			return err
