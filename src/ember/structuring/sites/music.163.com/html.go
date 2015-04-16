@@ -4,7 +4,20 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"io/ioutil"
+	"net/http"
 )
+
+func (p *Html) fetch(url string) (ret []byte, err error) {
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("Cookie", p.cookie)
+	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	return data, err
+}
 
 func (p *Html) splitHtml(content, key []byte, pattern string, word *[]byte) () {
 	var idx = 0
@@ -65,4 +78,5 @@ func NewHtml() Html{
 }
 
 type Html struct {
+	cookie string
 }

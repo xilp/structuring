@@ -41,5 +41,4 @@ type Sites map[string]*SiteInfo
 
 type SiteInfo struct {
 	site types.Site
-	cookie string
 }

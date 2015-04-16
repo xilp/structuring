@@ -7,9 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
-	"net/http"
 	"strconv"
 	"time"
 )
@@ -96,50 +94,19 @@ func (p *Slave) processTask(info types.TaskInfo) (err error) {
 }
 
 func (p *Slave) Crawl(url string)(ret []string, err error) {
-	body, err := p.fetchHtml(url)
+	//body, err := p.fetchHtml(url)
+	domain := Domain(url)
+	site := p.sites[domain].site
+	body, err := site.FetchHtml(url)
 	if err != nil {
 		return nil, err
 	}
-	domain := Domain(url)
-	site := p.sites[domain].site
-	pv, err := site.ParseHtml([]byte(body))
+	pv, err := site.ParseHtml(body)
 	if pv == nil || err != nil {
 		return nil, err
 	}
 	p.data.write(url, pv, 0)
 	return site.ExtractUrl(body)
-}
-
-func (p *Slave) getCookie(host string) (cookie string, err error) {
-	for i := 0; i < 3; i++ {
-		resp, err := http.Head(host)
-		if err != nil {
-			continue
-		}
-		cookie = resp.Header.Get("Set-Cookie")
-		break
-	}
-	return cookie, err
-}
-
-func (p *Slave) fetchHtml(url string) (body string, err error) {
-	domain := Domain(url)
-	cookie := p.sites[domain].cookie
-	if cookie == "" {
-		cookie, err = p.getCookie("http://" + domain + "/")
-		if err != nil {
-			return "", err
-		}
-		p.sites[domain].cookie = cookie
-	}
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("Cookie", cookie)
-	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	return string(data), err
 }
 
 func (p *Slave) append(info types.TaskInfo) (err error) {
