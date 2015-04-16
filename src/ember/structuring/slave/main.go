@@ -83,6 +83,7 @@ func (p *Slave) invoke() (err error) {
 
 func (p *Slave) processTask(info types.TaskInfo) (err error) {
 	ret, err := p.Crawl(info.Url)
+	fmt.Printf("[ret:%#v]\n", ret)
 	if err != nil {
 		return err
 	}
@@ -99,12 +100,14 @@ func (p *Slave) Crawl(url string)(ret []string, err error) {
 	if err != nil {
 		return nil, err
 	}
-	pv, err := p.html.parse([]byte(body))
+	domain := Domain(url)
+	site := p.sites[domain].site
+	pv, err := site.ParseHtml([]byte(body))
 	if pv == nil || err != nil {
 		return nil, err
 	}
 	p.data.write(url, pv, 0)
-	return p.url.extract(body)
+	return site.ExtractUrl(body)
 }
 
 func (p *Slave) getCookie(host string) (cookie string, err error) {
@@ -150,7 +153,7 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	if err != nil {
 		return
 	}
-	p = &Slave{id, NewSites(), master, NewUrl(), NewHtml(), NewData()}
+	p = &Slave{id, NewSites(), master, NewData()}
 	return
 }
 
@@ -158,8 +161,6 @@ type Slave struct {
 	id string
 	sites Sites
 	master Master
-	url Url
-	html Html
 	data Data
 }
 

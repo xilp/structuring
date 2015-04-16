@@ -6,6 +6,8 @@ import (
 
 type Site interface {
 	NewTask(info TaskInfo) Task
+	ParseHtml(body []byte) (ret []string, err error)
+	ExtractUrl(body string) (ret []string, err error)
 }
 
 type Task interface {

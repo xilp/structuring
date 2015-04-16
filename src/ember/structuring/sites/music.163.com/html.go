@@ -2,6 +2,7 @@ package m1c
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 )
 
@@ -54,6 +55,7 @@ func (p *Html) parse(body []byte) (ret []string, err error) {
 
 	ret = append(ret, string(songName), string(singer), string(album))
 	ret = append(ret, string(issueDate), string(issueCompany), string(note), string(songLyric))
+	fmt.Printf("[ret:%#v]\n", ret)
 
 	return ret, err
 }

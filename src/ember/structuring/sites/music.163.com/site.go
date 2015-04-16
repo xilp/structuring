@@ -27,6 +27,14 @@ func (p *Site) NewTask(info types.TaskInfo) types.Task {
 	return &Song{info.Url}
 }
 
+func (p *Site) ParseHtml(body []byte) (ret []string, err error) {
+	return p.html.parse(body)
+}
+
+func (p *Site) ExtractUrl(body string) (ret []string, err error) {
+	return p.url.extract(body)
+}
+
 func New() *Site {
 	return &Site{NewUrl(), NewHtml(), NewCrawl()}
 }
