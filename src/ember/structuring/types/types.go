@@ -6,14 +6,10 @@ import (
 
 type Site interface {
 	NewTask(info TaskInfo) Task
-	FetchHtml(url string) (ret []byte, err error)
-	ParseHtml(body []byte) (ret string, err error)
-	ExtractUrl(body []byte) (ret []string, err error)
-	Write(body string) (err error)
 }
 
 type Task interface {
-	Run(appender Appender, site Site) error
+	Run(appender Appender) error
 }
 
 type SongInfo struct {

@@ -29,7 +29,7 @@ func (p *Html) splitHtml(content, key []byte, pattern string, word *[]byte) () {
 	}
 }
 
-func (p *Html) parse(body []byte) (ret string, err error) {
+func (p *Html) parse(body []byte) (ret []string, err error) {
 	var songName, singer, album, issueDate, issueCompany, note, songLyric []byte
 	var idx = 0
 	var b []byte
@@ -40,7 +40,7 @@ func (p *Html) parse(body []byte) (ret string, err error) {
 	reg := regexp.MustCompile(`<meta name="description" content="([^>]+)>`)
 	midBody := reg.Find(body)
 	if midBody == nil {
-		return "", err
+		return nil, err
 	}
 
 	p.splitHtml(midBody, []byte("所属专辑："), `所属专辑：([^。]+)`, &album)
@@ -65,11 +65,8 @@ func (p *Html) parse(body []byte) (ret string, err error) {
 		songLyric = bytes.Replace(songLyric, []byte("\n"), []byte(""), -1)
 	}
 
-	//ret = append(ret, string(songName), string(singer), string(album))
-	//ret = append(ret, string(issueDate), string(issueCompany), string(note), string(songLyric))
-	ret = string(songName) + "\t" + string(singer) + "\t" + string(album)
-	ret = ret + "\t" + string(issueDate) + "\t" + string(issueCompany) + "\t" + string(note) + "\t" + string(songLyric)
-
+	ret = append(ret, string(songName), string(singer), string(album))
+	ret = append(ret, string(issueDate), string(issueCompany), string(note), string(songLyric))
 	return ret, err
 }
 

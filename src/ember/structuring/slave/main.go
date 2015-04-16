@@ -55,7 +55,7 @@ func (p *Slave) routine() {
 }
 
 func (p *Slave) invoke() (err error) {
-	//var task types.Task
+	var task types.Task
 	var info types.TaskInfo
 	for {
 		info, err = p.master.Pop(p.id)
@@ -65,12 +65,12 @@ func (p *Slave) invoke() (err error) {
 		if !info.Valid() {
 			return err
 		}
-		task, site := p.sites.NewTask(info)
+		task = p.sites.NewTask(info)
 		if task == nil {
 			return ErrNoMatchSite
 		}
 		fmt.Printf("start: %v\n", info)
-		err = task.Run(p.append, site)
+		err = task.Run(p.append)
 		if err != nil {
 			return err
 		}
@@ -89,16 +89,14 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	if err != nil {
 		return
 	}
-	p = &Slave{id, "01", NewSites(), master, NewData()}
+	p = &Slave{id, NewSites(), master}
 	return
 }
 
 type Slave struct {
 	id string
-	version string
 	sites Sites
 	master Master
-	data Data
 }
 
 type Master struct {
