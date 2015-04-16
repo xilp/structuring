@@ -1,4 +1,4 @@
-package slave
+package m1c
 
 import (
 	"bytes"
@@ -7,18 +7,18 @@ import (
 	"sync"
 )
 
-func (p *RawFile) write(str string) (err error) {
+func (p *RawFile) Write(str string) (err error) {
 	p.locker.Lock()
 	defer p.locker.Unlock()
 	p.buf.WriteString(str)
 	p.cache+= 1
 	if p.cache >= p.cacheLine {
-		p.flush()
+		p.Flush()
 	}
 	return err
 }
 
-func (p *RawFile) flush() (err error) {
+func (p *RawFile) Flush() (err error) {
 	io.Copy(p.file, p.buf)
 	p.buf.Reset()
 	p.cache= 0
@@ -32,7 +32,7 @@ func NewRawFile() (file RawFile, err error){
 	}
 	file.buf = bytes.NewBuffer([]byte{})
 	file.cache = 0
-	file.cacheLine = 100
+	file.cacheLine = 1
 	return file, err
 }
 

@@ -55,7 +55,7 @@ func (p *Slave) routine() {
 }
 
 func (p *Slave) invoke() (err error) {
-	var task types.Task
+	//var task types.Task
 	var info types.TaskInfo
 	for {
 		info, err = p.master.Pop(p.id)
@@ -65,12 +65,12 @@ func (p *Slave) invoke() (err error) {
 		if !info.Valid() {
 			return err
 		}
-		task = p.sites.NewTask(info)
+		task, site := p.sites.NewTask(info)
 		if task == nil {
 			return ErrNoMatchSite
 		}
 		fmt.Printf("start: %v\n", info)
-		err = task.Run(p.processTask)
+		err = task.Run(p.append, site)
 		if err != nil {
 			return err
 		}
@@ -79,38 +79,7 @@ func (p *Slave) invoke() (err error) {
 	}
 }
 
-func (p *Slave) processTask(info types.TaskInfo) (err error) {
-	ret, err := p.Crawl(info.Url)
-	fmt.Printf("[ret:%#v]\n", ret)
-	if err != nil {
-		return err
-	}
-	host := Domain(info.Url)
-	for _, v := range ret {
-		info.Url = "http://" + host + "/"+ v
-		p.master.Push(p.id, info)
-	}
-	return err
-}
-
-func (p *Slave) Crawl(url string)(ret []string, err error) {
-	//body, err := p.fetchHtml(url)
-	domain := Domain(url)
-	site := p.sites[domain].site
-	body, err := site.FetchHtml(url)
-	if err != nil {
-		return nil, err
-	}
-	pv, err := site.ParseHtml(body)
-	if pv == nil || err != nil {
-		return nil, err
-	}
-	p.data.write(url, pv, 0)
-	return site.ExtractUrl(body)
-}
-
 func (p *Slave) append(info types.TaskInfo) (err error) {
-	fmt.Printf("appending: %v\n", info)
 	return p.master.Push(p.id, info)
 }
 
@@ -120,12 +89,13 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	if err != nil {
 		return
 	}
-	p = &Slave{id, NewSites(), master, NewData()}
+	p = &Slave{id, "01", NewSites(), master, NewData()}
 	return
 }
 
 type Slave struct {
 	id string
+	version string
 	sites Sites
 	master Master
 	data Data

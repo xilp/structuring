@@ -7,13 +7,22 @@ import (
 type Site interface {
 	NewTask(info TaskInfo) Task
 	FetchHtml(url string) (ret []byte, err error)
-	ParseHtml(body []byte) (ret []string, err error)
+	ParseHtml(body []byte) (ret string, err error)
 	ExtractUrl(body []byte) (ret []string, err error)
+	Write(body string) (err error)
 }
 
 type Task interface {
-	Run(appender Appender) error
+	Run(appender Appender, site Site) error
 }
+
+type SongInfo struct {
+	Version string
+	Url string
+	SongName, Singer, Album, IssueDate string
+	IssueCompany, Note, SongLyric string
+}
+
 
 type Appender func(info TaskInfo) error
 
