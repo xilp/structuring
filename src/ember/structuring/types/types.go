@@ -6,6 +6,7 @@ import (
 
 type Site interface {
 	NewTask(info TaskInfo) Task
+	Flush() (err error)
 }
 
 type Task interface {

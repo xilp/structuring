@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"strconv"
 	"time"
+	"os"
+	"os/signal"
 )
 
 var ErrNoMatchSite = errors.New("no match site")
@@ -31,12 +33,14 @@ func Run(args []string) {
 		id = strconv.Itoa(rand.Int())
 	}
 
+
 	slave, err := NewSlave(master, id)
 	cli.Check(err)
 	slave.run(concurrent)
 }
 
 func (p *Slave) run(concurrent int) {
+	p.catchSignal()
 	for i := 0; i < concurrent - 1; i++ {
 		go p.routine()
 	}
@@ -52,6 +56,20 @@ func (p *Slave) routine() {
 			time.Sleep(time.Second * 3)
 		}
 	}
+}
+
+func (p *Slave) catchSignal() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			fmt.Printf("received ctrl+c(%v)\n", sig)
+			for _, v := range p.sites {
+				v.site.Flush()
+			}
+			os.Exit(0)
+		}
+	}()
 }
 
 func (p *Slave) invoke() (err error) {

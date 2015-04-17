@@ -5,7 +5,7 @@ import (
 	"hash/crc32"
 )
 
-func (p *Data) read(b string, nid int) (err error) {
+func (p *Data) load(b string, nid int) (err error) {
 	/*
 	buf := bytes.NewBuffer(b) // b is []byte
 	myfirstint, err := binary.ReadVarint(buf)
@@ -39,7 +39,7 @@ func (p *Data) write(b string, nid int) (err error) {
 	binary.LittleEndian.PutUint32(crc_buf, uint32(crc32.ChecksumIEEE([]byte(b))))
 
 	//p.file.Write(append(buf, b))
-	p.file.Write(string(buf) + b)
+	p.file.Write(buf, b)
 	return err
 }
 

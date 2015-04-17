@@ -2,23 +2,17 @@ package m1c
 
 import (
 	"ember/structuring/types"
-	"fmt"
 	"net/http"
 )
 
 func (p *Song) Run(appender types.Appender) (err error) {
 	// TODO
-	// extrat infos
-	// get similars
-	// new song task -> chan
 	if len(p.url) > 100 {
 		return
 	}
-	//task := types.NewTaskInfo(p.url + "*", "song", 0)
-
-	ret, err := p.Crawl(p.url)
-	if err != nil {
-		return err
+	ret, err := p.Crawl()
+	if ret == nil || err != nil {
+		return  err
 	}
 
 	task := types.NewTaskInfo(p.url, "song", 0)
@@ -30,8 +24,8 @@ func (p *Song) Run(appender types.Appender) (err error) {
 	return err
 }
 
-func (p *Song) Crawl(url string) (ret []string, err error) {
-	body, err := p.site.FetchHtml(url)
+func (p *Song) Crawl() (ret []string, err error) {
+	body, err := p.site.FetchHtml(p.url)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +33,7 @@ func (p *Song) Crawl(url string) (ret []string, err error) {
 	if pv == nil || err != nil {
 		return nil, err
 	}
-	p.site.Write(url, pv)
+	p.site.Write(p.url, pv)
 	return p.site.ExtractUrl(body)
 }
 
@@ -52,6 +46,11 @@ func (p *Site) NewTask(info types.TaskInfo) types.Task {
 	switch info.Type {
 	}
 	return &Song{p, info.Url}
+}
+
+func (p *Site) Flush()(err error) {
+	p.data.file.Flush()
+	return p.data.file.Close()
 }
 
 func (p *Site) FetchHtml(url string) (ret []byte, err error) {
@@ -79,7 +78,6 @@ func (p *Site) Write(url string, ret []string) (err error) {
 }
 
 func (p *Site) Serialize() (ret []byte, err error) {
-	fmt.Printf("[]")
 	return ret, err
 }
 
