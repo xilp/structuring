@@ -17,3 +17,4 @@ func (p *Master) catchSignal() {
 		}
 	}()
 }
+
