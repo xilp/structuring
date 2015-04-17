@@ -25,9 +25,10 @@ func Run(args []string) {
 	if err != nil {
 		return
 	}
+	p.catchSignal()
+	p.scan()
 	err = rpc.Run(port)
 	cli.Check(err)
-	p.scan()
 }
 
 func (p *Master) Fetch(url string) error {
