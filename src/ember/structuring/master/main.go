@@ -61,18 +61,14 @@ func (p *Master) UnDones(urls []string) (err error) {
 	return err
 }
 
-func (p *Master) Slaves() (slaves string, err error) {
-	//slaves = p.slaves
-	return "", err
+func (p *Master) Slaves() (slaves map[string]int64, err error) {
+	return p.slaves , err
 }
 
-func (p *Master) UnSlaves() (err error) {
-	//TODO
-	/*
-	for _, v := range slaves {
-		p.slaves[v] = 1
+func (p *Master) UnSlaves(slaves map[string]int64) (err error) {
+	if slaves != nil {
+		p.slaves = slaves
 	}
-	*/
 	return
 }
 
@@ -156,21 +152,27 @@ func (p *Master) tasksUnSerialize(str string) (tasks []types.TaskInfo, err error
 	return tasks, err
 }
 
-func (p *Master) slavesSerialize() (str string, err error) {
-	/*	
+func (p *Master) slavesSerialize(slaves map[string]int64) (str string, err error) {
 	data, err := json.Marshal(slaves)
 	if err != nil {
 		return "", err
 	}
 	str = string(data) + "\n"
-	*/
 	return str, err
 }
 
-func (p *Master) slavesUnSerialize(str string) (err error) {
-	return
-}
+func (p *Master) slavesUnSerialize(str string) ( slaves map[string]int64, err error) {
+	reg := regexp.MustCompile(`[^\n]+`)
+	slavesJson := reg.FindAllString(str, -1)
 
+	for _, v := range slavesJson {
+		err := json.Unmarshal([]byte(v), &slaves)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return slaves, err
+}
 
 func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
 	p.locker.Lock()
@@ -233,12 +235,11 @@ func (p *Master) save() (err error) {
 		return err
 	}
 
-	/*
 	slaves, err:= p.Slaves()
 	if err != nil {
 		return err
 	}
-	*/
+	_ = slaves
 
 	doings, err:= p.Doings()
 	if err != nil {
@@ -262,17 +263,15 @@ func (p *Master) save() (err error) {
 	if err != nil {
 		return
 	}
-	/*
 	slavesStr, err:= p.slavesSerialize(slaves)
 	if err != nil {
 		return
 	}
-	*/
 
 	p.donesFile.write	(donesStr	, 0)
 	p.doingsFile.write	(doingsStr	, 0)
 	p.tasksFile.write	(tasksStr	, 0)
-	//p.slavesFile.write	(slavesStr	, 0)
+	p.slavesFile.write	(slavesStr	, 0)
 
 	return
 }
@@ -289,12 +288,10 @@ func (p *Master) load() (err error) {
 	if err != nil {
 		return
 	}
-	/*
 	slavesStr, err := p.slavesFile.read(0)
 	if err != nil {
 		return
 	}
-	*/
 	tasksStr, err := p.tasksFile.read(0)
 	if err != nil {
 		return
@@ -311,12 +308,10 @@ func (p *Master) load() (err error) {
 		return
 	}
 
-	/*
-	slaves, err:= p.slavesUnSerialize(slavesStr)
+	slaves, err := p.slavesUnSerialize(slavesStr)
 	if err != nil {
 		return
 	}
-	*/
 
 	tasks, err:= p.tasksUnSerialize(tasksStr)
 	if err != nil {
@@ -336,12 +331,12 @@ func (p *Master) load() (err error) {
 		return err
 	}
 
-	/*
 	err = p.UnSlaves(slaves)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("[slaves:%#v]\n", slaves)
+	/*
 	*/
 
 	err = p.UnTasks(tasks)
