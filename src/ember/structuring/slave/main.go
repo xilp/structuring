@@ -7,9 +7,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"time"
+	"math/rand"
 	"os"
 	"os/signal"
 )
@@ -33,9 +33,16 @@ func Run(args []string) {
 		id = strconv.Itoa(rand.Int())
 	}
 
-
 	slave, err := NewSlave(master, id)
 	cli.Check(err)
+
+	rpc := rpc.NewServer()
+	err = rpc.Reg(slave)
+	if err != nil {
+		return
+	}
+	err = rpc.Run(8888)
+
 	slave.run(concurrent)
 }
 
@@ -108,7 +115,23 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 		return
 	}
 	p = &Slave{id, NewSites(), master}
+	err = p.master.Register("http://127.0.0.1:8888", id)
+	if err != nil {
+		return
+	}
 	return
+}
+
+func (p *Slave) Trait() map[string][]string {
+	return map[string][]string {
+		"Search": {"key"},
+	}
+}
+
+func (p *Slave) Search(key string) (ret string, err error) {
+	//TODO 
+	println("run", key)
+	return "salve:hello json", err
 }
 
 type Slave struct {
@@ -118,6 +141,7 @@ type Slave struct {
 }
 
 type Master struct {
+	Register func(addr, slave string) error
 	Done func(slave string, info types.TaskInfo) error
 	Push func(slave string, info types.TaskInfo) error
 	Pop func(slave string) (info types.TaskInfo, err error)
@@ -125,6 +149,7 @@ type Master struct {
 
 func (p *MasterTrait) Trait() map[string][]string {
 	return map[string][]string {
+		"Register": {"addr", "slave"},
 		"Done": {"slave", "task"},
 		"Push": {"slave", "task"},
 		"Pop": {"slave"},
