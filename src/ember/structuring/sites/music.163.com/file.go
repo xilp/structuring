@@ -26,6 +26,37 @@ func (p *RawFile) Read() (ret string, err error) {
 	return ret, err
 }
 
+func (p *RawFile) ReadForSearching() (ret string, err error) {
+	file, err := os.OpenFile("music.163.com." + "binlog.backup", os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	chunks := make([]byte,1024,1024 * 1024)
+
+	stat, err := file.Stat()
+	if err != nil {
+		return
+	}
+	size := stat.Size()
+
+	buf := make([]byte,1024*1024)
+	var i int64
+	var n int
+	for i = 0; i < size; {
+		n, err = file.Read(buf)
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		if 0 == n {
+			break
+		}
+		chunks=append(chunks,buf[:n]...)
+		i = int64(n) + i
+	}
+	return string(chunks),err
+}
+
 func (p *RawFile) Close() (err error) {
 	p.file.Close()
 	err = p.backupFile.Close()

@@ -49,11 +49,9 @@ func Run(args []string) {
 
 func (p *Slave) run(concurrent int) {
 	p.catchSignal()
-	//for i := 0; i < concurrent - 1; i++ {
 	for i := 0; i < concurrent ; i++ {
 		go p.routine()
 	}
-	//p.routine()
 }
 
 func (p *Slave) routine() {
@@ -118,7 +116,6 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	}
 	p = &Slave{id, NewSites(), master}
 	err = p.master.Register("http://127.0.0.1:8888", id)
-	fmt.Printf("[After Register][err:%#v]\n", err)
 	if err != nil {
 		return
 	}
@@ -133,8 +130,19 @@ func (p *Slave) Trait() map[string][]string {
 
 func (p *Slave) Search(key string) (ret string, err error) {
 	//TODO 
-	println("run", key)
-	return "salve:hello json", err
+	str := ""
+	var x [][]string
+	for _, v := range p.sites {
+		x, err = v.site.Search(key)
+		if err != nil {
+			return "", err
+		}
+		for _, m := range x {
+			str = str + m[1] + "\n"
+		}
+	}
+	fmt.Printf("[str:%s]\n", str)
+	return str, err
 }
 
 type Slave struct {

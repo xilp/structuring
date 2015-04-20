@@ -3,6 +3,9 @@ package m1c
 import (
 	"ember/structuring/types"
 	"net/http"
+	"regexp"
+	"strings"
+	//"fmt"
 )
 
 func (p *Song) Run(appender types.Appender) (err error) {
@@ -75,6 +78,26 @@ func (p *Site) Write(url string, ret []string) (err error) {
 	}
 	str = str + "\n"
 	return p.data.write(str, 0)
+}
+
+func (p *Site) Search(key string) (ret [][]string, err error) {
+	fileData, err := p.data.readForSearching(0)
+	reg := regexp.MustCompile(`[^\n]+`)
+	line := reg.FindAllString(string(fileData), -1)
+	var x [][]string
+	for _, v := range line {
+		split := regexp.MustCompile(`[^\t]+`)
+		word := split.FindAllString(v, -1)
+		//fmt.Printf("word:%#v\n", word)
+		//fmt.Printf("url:%#v\n", word[1])
+		//fmt.Printf("songName:%#v\n", word[2])
+		if strings.Contains(word[2], key) {
+			x = append(x, word)
+		}
+	}
+	//fmt.Printf("[len(x):%d]\n", len(x))
+	//fmt.Printf("[x:%#v]\n", x)
+	return x, err
 }
 
 func (p *Site) Serialize() (ret []byte, err error) {

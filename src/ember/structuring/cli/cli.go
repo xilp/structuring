@@ -10,7 +10,6 @@ import (
 
 func Run(args []string) {
 	addr, args := cli.PopArg("addr", "http://127.0.0.1:9000", args)
-	//addr, args := cli.PopArg("addr", "http://127.0.0.1:8888", args)
 	client, err := NewClient(addr)
 	cli.Check(err)
 

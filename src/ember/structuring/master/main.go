@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	//"strconv"
 	"time"
 	"ember/cli"
 	"ember/http/rpc"
 	"ember/structuring/slave"
 	"ember/structuring/types"
-	//"math/rand"
 )
 
 func Run(args []string) {
@@ -29,7 +27,6 @@ func Run(args []string) {
 	}
 	p.catchSignal()
 	p.scan()
-	//p.Register("http://127.0.0.1:8888", "slave")
 	err = rpc.Run(port)
 	cli.Check(err)
 }
@@ -39,21 +36,18 @@ func (p *Master) Fetch(url string) error {
 }
 
 func (p *Master) Search(key string) (ret string, err error) {
-	//TODO 分别发送task to all slaves
-
 	str := ""
-	for i, v := range p.slaves {
+	for i, _ := range p.slaves {
 		if i != "master" && i != "rpush" {
-			fmt.Printf("[i:%s][v:%d]\n", i, v)
-			//ret, err = p.slavesRemote["slave"].Search(key)
 			ret, err = p.slavesRemote[i].Search(key)
-			fmt.Printf("[ret:%s]\n", ret)
-			str = str + ret
+			if err != nil {
+			} else {
+				str = str + ret
+			}
 		}
 	}
-	fmt.Printf("[p.slaveRemotes:%#v]\n", p.slavesRemote)
 
-	return "master:hello json " + str, err
+	return "master:" + str, err
 }
 
 func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
@@ -116,8 +110,6 @@ func (p *Master) Register(addr, slaveName string) (err error) {
 	}
 
 	p.slavesRemote[slaveName] = slave
-	fmt.Printf("[register][p.slaveRemote:%#v]\n", p.slavesRemote)
-	fmt.Printf("[register][addr:%s][slaveName:%s]\n", addr, slaveName)
 	return
 }
 

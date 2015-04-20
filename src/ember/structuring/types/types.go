@@ -7,6 +7,7 @@ import (
 type Site interface {
 	NewTask(info TaskInfo) Task
 	Flush() (err error)
+	Search(key string) (ret [][]string, err error)
 }
 
 type Task interface {

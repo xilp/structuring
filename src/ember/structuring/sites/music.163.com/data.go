@@ -2,6 +2,7 @@ package m1c
 
 import (
 	"encoding/binary"
+	//"fmt"
 	"hash/crc32"
 )
 
@@ -41,6 +42,13 @@ func (p *Data) write(b string, nid int) (err error) {
 	//p.file.Write(append(buf, b))
 	p.file.Write(buf, b)
 	return err
+}
+
+func (p *Data) readForSearching(nid int) (ret []byte, err error) {
+	str, err := p.file.ReadForSearching()
+	// TODO line head parse
+	//fmt.Printf("[len(ret):%d]\n", len(ret))
+	return []byte(str), err
 }
 
 func NewData() Data{
