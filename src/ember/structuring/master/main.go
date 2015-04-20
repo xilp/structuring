@@ -13,6 +13,7 @@ import (
 	"ember/structuring/slave"
 	"ember/structuring/types"
 	"regexp"
+	"os"
 )
 
 func Run(args []string) {
@@ -347,13 +348,17 @@ func (p *Master) load() (err error) {
 
 func (p *Master) scan() {
 	go func() {
-		for k, v := range p.doings {
-			if time.Since(time.Unix(time.Unix(0, v.Created).Unix(), 0)) >= time.Minute {
-				p.Push("repush", v)
-				delete(p.doings, k)
+		for {
+			for k, v := range p.doings {
+				if time.Since(time.Unix(time.Unix(0, v.Created).Unix(), 0)) >= time.Minute {
+					p.Push("repush", v)
+					delete(p.doings, k)
+				}
 			}
+			p.save()
+			time.Sleep(time.Minute)
+			fmt.Fprintf(os.Stderr, "hello\n")
 		}
-		time.Sleep(time.Minute)
 	}()
 }
 
