@@ -24,6 +24,18 @@ func Domain(url string) string {
 	return "music.163.com"
 }
 
+func (p *Sites) Register(domain string) (err error) {
+	site, ok := (*p)[domain]
+	if !ok {
+		site = p.NewSite(domain)
+		if site == nil {
+			return nil
+		}
+		(*p)[domain] = site
+	}
+	return
+}
+
 func (p *Sites) NewSite(domain string) (site *SiteInfo) {
 	switch domain {
 	case "music.163.com":

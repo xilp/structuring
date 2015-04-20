@@ -37,16 +37,21 @@ func (p *Master) Fetch(url string) error {
 
 func (p *Master) Search(key string) (ret string, err error) {
 	str := ""
-	for i, _ := range p.slaves {
+	//fmt.Printf("[master][Search]\n")
+	//fmt.Printf("[master][Search][p.slavesRemote:%#v]\n", p.slavesRemote)
+	//for i, v := range p.slaves {
+	for i, v := range p.slavesRemote {
+		fmt.Printf("[i:%#v][v:%#v]\n", i, v)
 		if i != "master" && i != "rpush" {
 			ret, err = p.slavesRemote[i].Search(key)
+			//fmt.Printf("[err:%#v]\n", err)
 			if err != nil {
 			} else {
 				str = str + ret
 			}
 		}
 	}
-
+	//fmt.Printf("[master][Search][str:%s]\n", str)
 	return "master:" + str, err
 }
 
@@ -101,14 +106,12 @@ func (p *Master) Pop(slave string) (info types.TaskInfo, err error) {
 	return
 }
 
-
 func (p *Master) Register(addr, slaveName string) (err error) {
 	var slave Slave
 	err = rpc.NewClient(addr).Reg(&slave, &SlaveTrait{})
 	if err != nil {
 		return
 	}
-
 	p.slavesRemote[slaveName] = slave
 	return
 }

@@ -21,7 +21,6 @@ type SongInfo struct {
 	IssueCompany, Note, SongLyric string
 }
 
-
 type Appender func(info TaskInfo) error
 
 func NewTaskInfo(url string, typ string, weight int) TaskInfo {

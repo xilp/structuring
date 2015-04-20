@@ -168,11 +168,13 @@ func (p *Master) save() (err error) {
 		return err
 	}
 
+	/*
 	slaves, err:= p.Slaves()
 	if err != nil {
 		return err
 	}
 	_ = slaves
+	*/
 
 	doings, err:= p.Doings()
 	if err != nil {
@@ -196,15 +198,17 @@ func (p *Master) save() (err error) {
 	if err != nil {
 		return
 	}
+	/*
 	slavesStr, err:= p.slavesSerialize(slaves)
 	if err != nil {
 		return
 	}
+	*/
 
 	p.donesFile.write	(donesStr	, 0)
 	p.doingsFile.write	(doingsStr	, 0)
 	p.tasksFile.write	(tasksStr	, 0)
-	p.slavesFile.write	(slavesStr	, 0)
+	//p.slavesFile.write	(slavesStr	, 0)
 
 	return
 }
@@ -221,10 +225,13 @@ func (p *Master) load() (err error) {
 	if err != nil {
 		return
 	}
+	/*
 	slavesStr, err := p.slavesFile.read(0)
 	if err != nil {
 		return
 	}
+	*/
+
 	tasksStr, err := p.tasksFile.read(0)
 	if err != nil {
 		return
@@ -241,10 +248,12 @@ func (p *Master) load() (err error) {
 		return
 	}
 
+	/*
 	slaves, err := p.slavesUnSerialize(slavesStr)
 	if err != nil {
 		return
 	}
+	*/
 
 	tasks, err:= p.tasksUnSerialize(tasksStr)
 	if err != nil {
@@ -264,11 +273,13 @@ func (p *Master) load() (err error) {
 		return err
 	}
 
+	/*
 	err = p.UnSlaves(slaves)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("[slaves:%#v]\n", slaves)
+	*/
 
 	err = p.UnTasks(tasks)
 	if err != nil {
@@ -293,4 +304,3 @@ func (p *Master) scan() {
 		}
 	}()
 }
-
