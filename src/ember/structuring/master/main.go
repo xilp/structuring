@@ -116,7 +116,8 @@ func (p *Master) Register(addr, slaveName string) (err error) {
 	}
 
 	p.slavesRemote[slaveName] = slave
-	fmt.Printf("[p.slaveRemote:%#v]\n", p.slavesRemote)
+	fmt.Printf("[register][p.slaveRemote:%#v]\n", p.slavesRemote)
+	fmt.Printf("[register][addr:%s][slaveName:%s]\n", addr, slaveName)
 	return
 }
 

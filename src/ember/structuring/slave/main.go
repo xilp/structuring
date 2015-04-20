@@ -41,17 +41,19 @@ func Run(args []string) {
 	if err != nil {
 		return
 	}
-	err = rpc.Run(8888)
 
 	slave.run(concurrent)
+
+	err = rpc.Run(8888)
 }
 
 func (p *Slave) run(concurrent int) {
 	p.catchSignal()
-	for i := 0; i < concurrent - 1; i++ {
+	//for i := 0; i < concurrent - 1; i++ {
+	for i := 0; i < concurrent ; i++ {
 		go p.routine()
 	}
-	p.routine()
+	//p.routine()
 }
 
 func (p *Slave) routine() {
@@ -116,6 +118,7 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	}
 	p = &Slave{id, NewSites(), master}
 	err = p.master.Register("http://127.0.0.1:8888", id)
+	fmt.Printf("[After Register][err:%#v]\n", err)
 	if err != nil {
 		return
 	}
