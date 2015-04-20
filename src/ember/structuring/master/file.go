@@ -42,6 +42,7 @@ func (p *RawFile) Close() (err error) {
 
 func (p *RawFile) Flush() (err error) {
 	// TODO lock 
+	p.file.Truncate(0)
 	io.Copy(p.file, p.buf)
 	p.buf.Reset()
 	p.cache= 0

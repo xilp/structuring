@@ -336,8 +336,6 @@ func (p *Master) load() (err error) {
 		return err
 	}
 	fmt.Printf("[slaves:%#v]\n", slaves)
-	/*
-	*/
 
 	err = p.UnTasks(tasks)
 	if err != nil {
