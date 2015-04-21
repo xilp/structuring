@@ -37,21 +37,15 @@ func (p *Master) Fetch(url string) error {
 
 func (p *Master) Search(key string) (ret string, err error) {
 	str := ""
-	//fmt.Printf("[master][Search]\n")
-	//fmt.Printf("[master][Search][p.slavesRemote:%#v]\n", p.slavesRemote)
-	//for i, v := range p.slaves {
-	for i, v := range p.slavesRemote {
-		fmt.Printf("[i:%#v][v:%#v]\n", i, v)
+	for i, _ := range p.slavesRemote {
 		if i != "master" && i != "rpush" {
 			ret, err = p.slavesRemote[i].Search(key)
-			//fmt.Printf("[err:%#v]\n", err)
 			if err != nil {
 			} else {
 				str = str + ret
 			}
 		}
 	}
-	//fmt.Printf("[master][Search][str:%s]\n", str)
 	return "master:" + str, err
 }
 
@@ -80,11 +74,16 @@ func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
 		return
 	}
 
+	if p.todos[info.Url] {
+		return
+	}
+
 	if _, ok := p.doings[info.Url] ; ok {
 		return
 	}
 
 	p.tasks = append(p.tasks, info)
+	p.todos[info.Url] = true
 
 	return
 }
@@ -100,6 +99,7 @@ func (p *Master) Pop(slave string) (info types.TaskInfo, err error) {
 	}
 	info = p.tasks[0]
 	p.tasks = p.tasks[1:]
+	delete(p.todos, info.Url)
 
 	p.doings[info.Url] = info
 
@@ -128,6 +128,7 @@ func (p *Master) Trait() map[string][]string {
 
 func NewMaster() *Master {
 	p := &Master {
+		todos: make(map[string]bool),
 		dones: make(map[string]bool),
 		doings: make(map[string]types.TaskInfo),
 		slaves: make(map[string]int64),
@@ -135,7 +136,6 @@ func NewMaster() *Master {
 		donesFile: NewData("donesFile.txt"),
 		doingsFile: NewData("doingFile.txt"),
 		tasksFile: NewData("tasksFile.txt"),
-		slavesFile: NewData("slavesFile.txt"),
 	}
 	p.load()
 	return p
@@ -143,6 +143,7 @@ func NewMaster() *Master {
 
 type Master struct {
 	tasks []types.TaskInfo
+	todos map[string]bool
 	dones map[string]bool
 	doings map[string]types.TaskInfo
 	searchTasks map[string]types.TaskInfo
@@ -151,7 +152,6 @@ type Master struct {
 	donesFile	Data
 	doingsFile	Data
 	tasksFile	Data
-	slavesFile	Data
 	locker sync.Mutex
 }
 
