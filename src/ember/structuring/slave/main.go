@@ -7,11 +7,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
-	"net/http"
 	"strconv"
 	"time"
+	"math/rand"
+	"os"
+	"os/signal"
 )
 
 var ErrNoMatchSite = errors.New("no match site")
@@ -35,14 +35,25 @@ func Run(args []string) {
 
 	slave, err := NewSlave(master, id)
 	cli.Check(err)
+
+	slave.sites.Register("music.163.com")
+
+	rpc := rpc.NewServer()
+	err = rpc.Reg(slave)
+	if err != nil {
+		return
+	}
+
 	slave.run(concurrent)
+
+	err = rpc.Run(8888)
 }
 
 func (p *Slave) run(concurrent int) {
-	for i := 0; i < concurrent - 1; i++ {
+	p.catchSignal()
+	for i := 0; i < concurrent ; i++ {
 		go p.routine()
 	}
-	p.routine()
 }
 
 func (p *Slave) routine() {
@@ -54,6 +65,20 @@ func (p *Slave) routine() {
 			time.Sleep(time.Second * 3)
 		}
 	}
+}
+
+func (p *Slave) catchSignal() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			fmt.Printf("received ctrl+c(%v)\n", sig)
+			for _, v := range p.sites {
+				v.site.Flush()
+			}
+			os.Exit(0)
+		}
+	}()
 }
 
 func (p *Slave) invoke() (err error) {
@@ -72,7 +97,7 @@ func (p *Slave) invoke() (err error) {
 			return ErrNoMatchSite
 		}
 		fmt.Printf("start: %v\n", info)
-		err = task.Run(p.processTask)
+		err = task.Run(p.append)
 		if err != nil {
 			return err
 		}
@@ -81,66 +106,7 @@ func (p *Slave) invoke() (err error) {
 	}
 }
 
-func (p *Slave) processTask(info types.TaskInfo) (err error) {
-	ret, err := p.Crawl(info.Url)
-	if err != nil {
-		return err
-	}
-	host := Domain(info.Url)
-	for _, v := range ret {
-		info.Url = "http://" + host + "/"+ v
-		p.master.Push(p.id, info)
-	}
-	return err
-}
-
-func (p *Slave) Crawl(url string)(ret []string, err error) {
-	body, err := p.fetchHtml(url)
-	if err != nil {
-		return nil, err
-	}
-	pv, err := p.html.parse([]byte(body))
-	if pv == nil || err != nil {
-		return nil, err
-	}
-	p.data.write(url, pv, 0)
-	return p.url.extract(body)
-}
-
-func (p *Slave) getCookie(host string) (cookie string, err error) {
-	for i := 0; i < 3; i++ {
-		resp, err := http.Head(host)
-		if err != nil {
-			continue
-		}
-		cookie = resp.Header.Get("Set-Cookie")
-		break
-	}
-	return cookie, err
-}
-
-func (p *Slave) fetchHtml(url string) (body string, err error) {
-	domain := Domain(url)
-	cookie := p.sites[domain].cookie
-	if cookie == "" {
-		cookie, err = p.getCookie("http://" + domain + "/")
-		if err != nil {
-			return "", err
-		}
-		p.sites[domain].cookie = cookie
-	}
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("Cookie", cookie)
-	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	return string(data), err
-}
-
 func (p *Slave) append(info types.TaskInfo) (err error) {
-	fmt.Printf("appending: %v\n", info)
 	return p.master.Push(p.id, info)
 }
 
@@ -150,20 +116,50 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	if err != nil {
 		return
 	}
-	p = &Slave{id, NewSites(), master, NewUrl(), NewHtml(), NewData()}
+	p = &Slave{id, NewSites(), master}
+	err = p.master.Register("http://127.0.0.1:8888", id)
+	if err != nil {
+		return
+	}
 	return
+}
+
+func (p *Slave) Trait() map[string][]string {
+	return map[string][]string {
+		"Search": {"key"},
+	}
+}
+
+func (p *Slave) Search(key string) (ret string, err error) {
+	//TODO 
+	str := ""
+	//fmt.Printf("[slave][Search]")
+	//fmt.Printf("[p.sites = %#v]\n", p.sites)
+	var x [][]string
+	for i, v := range p.sites {
+		_ = i
+		//fmt.Printf("[i:%#v][v:%#v]\n", i, v)
+		x, err = v.site.Search(key)
+		if err != nil {
+			//fmt.Printf("[site is nil]\n")
+			return "", err
+		}
+		for _, m := range x {
+			str = str + m[1] + "\n"
+		}
+	}
+	//fmt.Printf("[str:%s]\n", str)
+	return str, err
 }
 
 type Slave struct {
 	id string
 	sites Sites
 	master Master
-	url Url
-	html Html
-	data Data
 }
 
 type Master struct {
+	Register func(addr, slave string) error
 	Done func(slave string, info types.TaskInfo) error
 	Push func(slave string, info types.TaskInfo) error
 	Pop func(slave string) (info types.TaskInfo, err error)
@@ -171,6 +167,7 @@ type Master struct {
 
 func (p *MasterTrait) Trait() map[string][]string {
 	return map[string][]string {
+		"Register": {"addr", "slave"},
 		"Done": {"slave", "task"},
 		"Push": {"slave", "task"},
 		"Pop": {"slave"},

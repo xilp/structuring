@@ -1,13 +1,13 @@
-package slave
+package m1c
 
 import (
 	"regexp"
 )
 
-func (p *Url) extract(body string) (ret []string, err error) {
+func (p *Url) extract(body []byte) (ret []string, err error) {
 	pattern := `song\?id=[\d]+`
 	reg := regexp.MustCompile(pattern)
-	return reg.FindAllString(body, -1), err
+	return reg.FindAllString(string(body), -1), err
 }
 
 func NewUrl() Url {

@@ -25,33 +25,28 @@ func Run(args []string) {
 	if err != nil {
 		return
 	}
+	p.catchSignal()
+	p.scan()
 	err = rpc.Run(port)
 	cli.Check(err)
-	p.scan()
 }
 
 func (p *Master) Fetch(url string) error {
 	return p.Push("master", types.NewTaskInfo(url, "index", math.MaxInt64))
 }
 
-func (p *Master) Dones() (urls []string, err error) {
-	p.locker.Lock()
-	defer p.locker.Unlock()
-
-	for url, _ := range p.dones {
-		urls = append(urls, url)
+func (p *Master) Search(key string) (ret string, err error) {
+	str := ""
+	for i, _ := range p.slavesRemote {
+		if i != "master" && i != "rpush" {
+			ret, err = p.slavesRemote[i].Search(key)
+			if err != nil {
+			} else {
+				str = str + ret
+			}
+		}
 	}
-	return
-}
-
-func (p *Master) Slaves() (slaves []string, err error) {
-	p.locker.Lock()
-	defer p.locker.Unlock()
-
-	for slave, _ := range p.slaves {
-		slaves = append(slaves, slave)
-	}
-	return
+	return "master:" + str, err
 }
 
 func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
@@ -62,7 +57,6 @@ func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
 	delete(p.doings, info.Url)
 	p.dones[info.Url] = true
 
-	p.save()
 	return
 }
 
@@ -70,13 +64,17 @@ var count = 0
 func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
 	fmt.Printf("appending %v\n", info)
 	p.locker.Lock()
+	defer p.locker.Unlock()
 
 	count ++;
 	fmt.Printf("[count:%d]\n", count)
-	defer p.locker.Unlock()
 	p.slaves[slave] = time.Now().UnixNano()
 
 	if p.dones[info.Url] {
+		return
+	}
+
+	if p.todos[info.Url] {
 		return
 	}
 
@@ -85,8 +83,8 @@ func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
 	}
 
 	p.tasks = append(p.tasks, info)
+	p.todos[info.Url] = true
 
-	p.save()
 	return
 }
 
@@ -101,39 +99,28 @@ func (p *Master) Pop(slave string) (info types.TaskInfo, err error) {
 	}
 	info = p.tasks[0]
 	p.tasks = p.tasks[1:]
+	delete(p.todos, info.Url)
 
 	p.doings[info.Url] = info
 
-	p.save()
 	return
 }
 
-func (p *Master) save() (err error) {
-	// TODO
+func (p *Master) Register(addr, slaveName string) (err error) {
+	var slave Slave
+	err = rpc.NewClient(addr).Reg(&slave, &SlaveTrait{})
+	if err != nil {
+		return
+	}
+	p.slavesRemote[slaveName] = slave
 	return
-}
-
-func (p *Master) load() (err error) {
-	// TODO
-	return
-}
-
-func (p *Master) scan() {
-	go func() {
-		for k, v := range p.doings {
-			if time.Since(time.Unix(time.Unix(0, v.Created).Unix(), 0)) >= time.Minute {
-				p.Push("repush", v)
-				delete(p.doings, k)
-			}
-		}
-		time.Sleep(time.Minute)
-	}()
 }
 
 func (p *Master) Trait() map[string][]string {
 	st := slave.MasterTrait{}
 	trait := st.Trait()
 	trait["Fetch"] = []string{"url"}
+	trait["Search"] = []string{"key"}
 	trait["Slaves"] = []string{}
 	trait["Dones"] = []string{}
 	return trait
@@ -141,9 +128,14 @@ func (p *Master) Trait() map[string][]string {
 
 func NewMaster() *Master {
 	p := &Master {
+		todos: make(map[string]bool),
 		dones: make(map[string]bool),
 		doings: make(map[string]types.TaskInfo),
 		slaves: make(map[string]int64),
+		slavesRemote: make(map[string]Slave),
+		donesFile: NewData("donesFile.txt"),
+		doingsFile: NewData("doingFile.txt"),
+		tasksFile: NewData("tasksFile.txt"),
 	}
 	p.load()
 	return p
@@ -151,10 +143,29 @@ func NewMaster() *Master {
 
 type Master struct {
 	tasks []types.TaskInfo
+	todos map[string]bool
 	dones map[string]bool
 	doings map[string]types.TaskInfo
+	searchTasks map[string]types.TaskInfo
 	slaves map[string]int64
+	slavesRemote map[string]Slave
+	donesFile	Data
+	doingsFile	Data
+	tasksFile	Data
 	locker sync.Mutex
+}
+
+type Slave struct {
+	Search func(key string)(ret string, err error)
+}
+
+func (p *SlaveTrait) Trait() map[string][]string {
+	return map[string][]string {
+		"Search": {"key"},
+	}
+}
+
+type SlaveTrait struct {
 }
 
 var ErrNoTask = errors.New("no task")

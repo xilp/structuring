@@ -6,10 +6,19 @@ import (
 
 type Site interface {
 	NewTask(info TaskInfo) Task
+	Flush() (err error)
+	Search(key string) (ret [][]string, err error)
 }
 
 type Task interface {
 	Run(appender Appender) error
+}
+
+type SongInfo struct {
+	Version string
+	Url string
+	SongName, Singer, Album, IssueDate string
+	IssueCompany, Note, SongLyric string
 }
 
 type Appender func(info TaskInfo) error

@@ -34,6 +34,7 @@ func NewClient(addr string) (p *Client, err error) {
 type Client struct {
 	Rpc *rpc.Client
 	Fetch func(url string) error
+	Search func(key string) (string,error)
 	Slaves func() ([]string, error)
 	Dones func() ([]string, error)
 }
