@@ -10,25 +10,23 @@ func (p *Data) load(b string, nid int) (err error) {
 	return err
 }
 
-func (p *Data) write(b string, nid int) (err error) {
-	buf := make([]byte, 8)
+func (p *Data) write(line []byte, nid int) (err error) {
+	head := make([]byte, 8)
 
-	size_buf := buf[:4]
-	binary.LittleEndian.PutUint32(size_buf, uint32(len(b)))
+	size := len(line)
+	crc32Line := uint32(crc32.ChecksumIEEE([]byte(line)))
+	binary.LittleEndian.PutUint32(head[:4], uint32(size))
+	binary.LittleEndian.PutUint32(head[4:], crc32Line)
 
-	crc_buf := buf[4:]
-	binary.LittleEndian.PutUint32(crc_buf, uint32(crc32.ChecksumIEEE([]byte(b))))
-
-	err = p.file.Write(buf, b)
+	err = p.file.Write(head, line)
 	if err != nil {
-		println(err.Error())
 		return
 	}
-	return err
+	return
 }
 
 func NewData() Data{
-	file, err := NewRawFile()
+	file, err := NewRawFile("")
 	if err != nil {
 		println(err.Error())
 	}

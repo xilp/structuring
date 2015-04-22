@@ -1,53 +1,67 @@
 package m1c
 
 import (
+	"bufio"
 	"bytes"
+	"hash/crc32"
+	"errors"
+	"encoding/binary"
 	"io"
 	"os"
 	"sync"
-	"bufio"
 )
 
-func (p *RawFile) Write(buf []byte, str string) (err error) {
+func (p *RawFile) Write(head, line []byte) (err error) {
 	p.locker.Lock()
 	defer p.locker.Unlock()
-	p.buf.WriteString(string(buf) + str)
-	p.backupBuf.WriteString(str)
-	p.cache+= 1
+	p.buf.Write(head)
+	p.buf.Write(line)
+
+	p.backupBuf.Write(line)
+
+	p.cache += 1
 	if p.cache >= p.cacheLine {
 		p.Flush()
 	}
+
 	return err
 }
 
 func (p *RawFile) Read() (ret string, err error) {
-	p.locker.Lock()
-	defer p.locker.Unlock()
+	//TODO read raw file
 	return ret, err
 }
 
-func (p *RawFile) Close() (err error) {
-	p.file.Close()
-	err = p.backupFile.Close()
-	return err
-}
-
 func (p *RawFile) Flush() (err error) {
-	io.Copy(p.file, p.buf)
-	io.Copy(p.backupFile, p.backupBuf)
+	n, err := io.Copy(p.fd, p.buf)
+	_ = n
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	n, err = io.Copy(p.backupFd, p.backupBuf)
+	if err != nil {
+		println(err.Error())
+		return
+	}
 	p.buf.Reset()
 	p.backupBuf.Reset()
 	p.cache= 0
 	return err
 }
 
-func NewRawFile() (file RawFile, err error){
-	file.file, err = os.OpenFile("music.163.com." + "binlog.txt", os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
+func NewRawFile(name string) (file RawFile, err error) {
+	file.fileName = "music.163.com." + "binlog.txt"
+	file.fd, err = os.OpenFile(file.fileName, os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
 	if err != nil {
+		println(err.Error())
 		return
 	}
-	file.backupFile, err = os.OpenFile("music.163.com." + "binlog.backup", os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
+
+	file.backupFileName = "music.163.com." + "binlog.backup"
+	file.backupFd, err = os.OpenFile(file.backupFileName, os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
 	if err != nil {
+		println(err.Error())
 		return
 	}
 
@@ -56,30 +70,85 @@ func NewRawFile() (file RawFile, err error){
 	file.cache = 0
 	file.cacheLine = 1
 
-	return file, err
+	return
+}
+
+func (p *RawFile) Close() (err error) {
+	err = p.fd.Close()
+	if err != nil {
+		return errors.New("close " + p.fileName + " error")
+	}
+	err = p.backupFd.Close()
+	if err != nil {
+		return errors.New("close " + p.backupFileName + " error")
+	}
+	return err
 }
 
 func (p *RawFile) OpenScanner() (scanner Scanner, err error) {
-	f, err := os.OpenFile("music.163.com." + "binlog.backup", os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
+	fd, err := os.OpenFile(p.fileName, os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
+	if err != nil {
+		println(err.Error())
+		return scanner,err
+	}
+	stat, err := fd.Stat()
 	if err != nil {
 		return scanner, err
 	}
-	return Scanner{bufio.NewScanner(f), f}, err
+	return Scanner{scanner:bufio.NewReaderSize(fd, 1024*1024), fd:fd, head:make([]byte, 8), line:make([]byte,1024*8), size:stat.Size(), idx:0}, err
+}
+
+func (p *Scanner) Scan() (buf []byte, err error) {
+	for {
+		n, err := p.scanner.Read(p.head)
+		if err != nil {
+			return buf, err
+		}
+		p.idx += int64(n)
+		if p.idx >= p.size {
+			return buf, errors.New("EOF")
+		}
+		size := binary.LittleEndian.Uint32(p.head[0:4])
+		crc32Line := binary.LittleEndian.Uint32(p.head[4:])
+
+		n, err = p.scanner.Read(p.line[:size])
+		p.idx += int64(n)
+		crc32Check := uint32(crc32.ChecksumIEEE([]byte(p.line[:size])))
+
+		if n == 0 && err == io.EOF {
+			return buf, err
+		}
+
+		if crc32Check == crc32Line {
+			return p.line[:size], err
+		}
+
+		if crc32Check != crc32Line {
+			return buf, errors.New("crc32 check fault")
+		}
+	}
+	return
 }
 
 func (p *Scanner) Close() ( err error) {
-	p.f.Close()
+	p.fd.Close()
 	return
 }
 
 type Scanner struct {
-	scanner *bufio.Scanner
-	f *os.File
+	scanner *bufio.Reader
+	fd *os.File
+	head []byte
+	line []byte
+	size int64
+	idx int64
 }
 
 type RawFile struct {
-	file *os.File
-	backupFile *os.File
+	fd *os.File
+	backupFd *os.File
+	fileName string
+	backupFileName string
 	locker sync.Mutex
 	cache int
 	cacheLine int

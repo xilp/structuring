@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"io"
 	//"fmt"
 )
 
@@ -36,7 +37,11 @@ func (p *Song) Crawl() (ret []string, err error) {
 	if pv == nil || err != nil {
 		return nil, err
 	}
-	p.site.Write(p.url, pv)
+	err = p.site.Write(p.url, pv)
+	if err != nil {
+		println(err.Error())
+		return
+	}
 	return p.site.ExtractUrl(body)
 }
 
@@ -63,6 +68,13 @@ func (p *Site) FetchHtml(url string) (ret []byte, err error) {
 	return p.html.fetch(url)
 }
 
+type SongInfo struct {
+	Version string
+	Url string
+	SongName, Singer, Album, IssueDate string
+	IssueCompany, Note, SongLyric string
+}
+
 func (p *Site) ParseHtml(body []byte) (ret []string, err error) {
 	return p.html.parse(body)
 }
@@ -77,7 +89,7 @@ func (p *Site) Write(url string, ret []string) (err error) {
 		str = str + "\t" + v
 	}
 	str = str + "\n"
-	return p.data.write(str, 0)
+	return p.data.write([]byte(str), 0)
 }
 
 func (p *Site) Search(key string) (ret [][]string, err error) {
@@ -87,8 +99,15 @@ func (p *Site) Search(key string) (ret [][]string, err error) {
 	}
 	reg := regexp.MustCompile(`[^\t\n]+`)
 	var x [][]string
-	for scanner.scanner.Scan() {
-		line := scanner.scanner.Text()
+	for {
+		buf, err := scanner.Scan()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			break
+		}
+		line := string(buf)
 		word := reg.FindAllString(line, -1)
 		if strings.Contains(word[2], key) {
 			x = append(x, word)
