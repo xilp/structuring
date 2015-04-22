@@ -88,7 +88,7 @@ func (p *Site) Write(url string, ret []string) (err error) {
 	for _, v := range ret {
 		str = str + "\t" + v
 	}
-	str = str + "\n"
+	str = str
 	return p.data.write([]byte(str), 0)
 }
 
