@@ -81,22 +81,20 @@ func (p *Site) Write(url string, ret []string) (err error) {
 }
 
 func (p *Site) Search(key string) (ret [][]string, err error) {
-	fileData, err := p.data.readForSearching(0)
-	reg := regexp.MustCompile(`[^\n]+`)
-	line := reg.FindAllString(string(fileData), -1)
+	scanner, err := p.data.file.OpenScanner()
+	if err != nil {
+		return
+	}
+	reg := regexp.MustCompile(`[^\t\n]+`)
 	var x [][]string
-	for _, v := range line {
-		split := regexp.MustCompile(`[^\t]+`)
-		word := split.FindAllString(v, -1)
-		//fmt.Printf("word:%#v\n", word)
-		//fmt.Printf("url:%#v\n", word[1])
-		//fmt.Printf("songName:%#v\n", word[2])
+	for scanner.scanner.Scan() {
+		line := scanner.scanner.Text()
+		word := reg.FindAllString(line, -1)
 		if strings.Contains(word[2], key) {
 			x = append(x, word)
 		}
 	}
-	//fmt.Printf("[len(x):%d]\n", len(x))
-	//fmt.Printf("[x:%#v]\n", x)
+	scanner.Close()
 	return x, err
 }
 
