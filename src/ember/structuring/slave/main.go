@@ -130,21 +130,20 @@ func (p *Slave) Trait() map[string][]string {
 	}
 }
 
-func (p *Slave) Search(key string) (ret string, err error) {
+func (p *Slave) Search(key string) (ret [][]string, err error) {
 	//TODO 
-	str := ""
 	var x [][]string
 	for i, v := range p.sites {
 		_ = i
 		x, err = v.site.Search(key)
 		if err != nil {
-			return "", err
+			continue
 		}
 		for _, m := range x {
-			str = str + m[1] + "\n"
+			ret = append(ret, m)
 		}
 	}
-	return str, err
+	return ret, err
 }
 
 type Slave struct {
