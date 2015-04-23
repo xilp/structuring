@@ -99,32 +99,49 @@ func (p *RawFile) OpenScanner() (scanner Scanner, err error) {
 }
 
 func (p *Scanner) Scan() (buf []byte, err error) {
+	var n int
+	var sum int
+	var sumByte uint32
 	for {
-		n, err := p.scanner.Read(p.head)
-		if err != nil {
-			return buf, err
-		}
-		p.idx += int64(n)
-		if p.idx >= p.size {
+
+		p.idx += int64(8)
+		if p.idx > p.size {
 			return buf, errors.New("EOF")
 		}
+
+		for sum = 0; sum < 8; sum = sum + n {
+			n = int(sum)
+			n, err = p.scanner.Read(p.head[n:])
+			if err != nil {
+				return buf, err
+			}
+		}
+
 		size := binary.LittleEndian.Uint32(p.head[0:4])
 		crc32Line := binary.LittleEndian.Uint32(p.head[4:])
 
-		n, err = p.scanner.Read(p.line[:size])
-		p.idx += int64(n)
-		crc32Check := uint32(crc32.ChecksumIEEE([]byte(p.line[:size])))
-
-		if n == 0 && err == io.EOF {
-			return buf, err
+		p.idx += int64(size)
+		if p.idx > p.size {
+			return buf, errors.New("EOF")
 		}
+
+		for sumByte = 0; sumByte < size; sumByte = sumByte + uint32(n) {
+			n = int(sumByte)
+			n, err = p.scanner.Read(p.line[n:size])
+			if err != nil {
+				return buf, err
+			}
+		}
+
+		crc32Check := uint32(crc32.ChecksumIEEE([]byte(p.line[:size])))
 
 		if crc32Check == crc32Line {
 			return p.line[:size], err
 		}
 
 		if crc32Check != crc32Line {
-			return buf, errors.New("crc32 check fault")
+			println("crc32 check fault")
+			continue
 		}
 	}
 	return
