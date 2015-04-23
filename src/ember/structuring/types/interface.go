@@ -5,6 +5,7 @@ type Slave struct {
 }
 
 type Master struct {
+	Search func(key string)(ret string, err error) `args:"key" return:"ret"`
 	Fetch func(url string) error `args:"url"`
 	Register func(addr, slave string) error `args:"addr,slave"`
 	Done func(slave string, info TaskInfo) error `args:"slave,info"`
