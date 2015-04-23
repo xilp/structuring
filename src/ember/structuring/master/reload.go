@@ -99,9 +99,6 @@ func (p *Master) load() (err error) {
 
 func (p *Master) LoadPush(slave string, info types.TaskInfo) (err error) {
 	fmt.Printf("appending %v\n", info)
-
-	count ++;
-	fmt.Printf("[count:%d]\n", count)
 	p.slaves[slave] = time.Now().UnixNano()
 
 	if p.dones[info.Url] {

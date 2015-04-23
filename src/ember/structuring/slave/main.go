@@ -17,17 +17,18 @@ import (
 var ErrNoMatchSite = errors.New("no match site")
 
 func Run(args []string) {
-	flag := flag.NewFlagSet("slave", flag.ContinueOnError)
+	args1, args2 := cli.SplitArgs(args, "master", "id", "conc", "i")
+
 	var master string
 	var id string
 	var concurrent int
 	var pause int
+	flag := flag.NewFlagSet("slave", flag.ContinueOnError)
 	flag.StringVar(&master, "master", "http://127.0.0.1:9000", "master address")
 	flag.StringVar(&id, "id", "", "slave id. gen a random one if nil")
 	flag.IntVar(&concurrent, "conc", 5, "goroutine number")
 	flag.IntVar(&pause, "i", 5, "pause interval if no task, in second")
-
-	cli.ParseFlag(flag, args, "master", "id", "conc")
+	cli.ParseFlag(flag, args1, "master", "id", "conc")
 
 	if id == "" {
 		id = strconv.Itoa(rand.Int())
@@ -35,18 +36,12 @@ func Run(args []string) {
 
 	slave, err := NewSlave(master, id)
 	cli.Check(err)
-
 	slave.sites.Register("music.163.com")
-
-	rpc := rpc.NewServer()
-	err = rpc.Reg(slave)
-	if err != nil {
-		return
-	}
-
 	slave.run(concurrent)
 
-	err = rpc.Run(8888)
+	client := &types.Slave{}
+	hub := cli.NewRpcHub(args2, slave, client)
+	hub.Run()
 }
 
 func (p *Slave) run(concurrent int) {
@@ -111,8 +106,8 @@ func (p *Slave) append(info types.TaskInfo) (err error) {
 }
 
 func NewSlave(addr string, id string) (p *Slave, err error) {
-	var master Master
-	err = rpc.NewClient(addr).Reg(&master, &MasterTrait{})
+	var master types.Master
+	err = rpc.NewClient(addr).Reg(&master)
 	if err != nil {
 		return
 	}
@@ -124,14 +119,8 @@ func NewSlave(addr string, id string) (p *Slave, err error) {
 	return
 }
 
-func (p *Slave) Trait() map[string][]string {
-	return map[string][]string {
-		"Search": {"key"},
-	}
-}
-
 func (p *Slave) Search(key string) (ret [][]string, err error) {
-	//TODO 
+	//TODO
 	var x [][]string
 	for i, v := range p.sites {
 		_ = i
@@ -149,24 +138,5 @@ func (p *Slave) Search(key string) (ret [][]string, err error) {
 type Slave struct {
 	id string
 	sites Sites
-	master Master
-}
-
-type Master struct {
-	Register func(addr, slave string) error
-	Done func(slave string, info types.TaskInfo) error
-	Push func(slave string, info types.TaskInfo) error
-	Pop func(slave string) (info types.TaskInfo, err error)
-}
-
-func (p *MasterTrait) Trait() map[string][]string {
-	return map[string][]string {
-		"Register": {"addr", "slave"},
-		"Done": {"slave", "task"},
-		"Push": {"slave", "task"},
-		"Pop": {"slave"},
-	}
-}
-
-type MasterTrait struct {
+	master types.Master
 }

@@ -2,34 +2,24 @@ package master
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"math"
 	"sync"
 	"time"
 	"ember/cli"
 	"ember/http/rpc"
-	"ember/structuring/slave"
 	"ember/structuring/types"
 	"encoding/json"
 )
 
 func Run(args []string) {
-	flag := flag.NewFlagSet("run", flag.ContinueOnError)
-	var port int
-	flag.IntVar(&port, "port", 9000, "master service port")
-	cli.ParseFlag(flag, args)
+	master := NewMaster()
+	master.catchSignal()
+	master.scan()
 
-	p := NewMaster()
-	rpc := rpc.NewServer()
-	err := rpc.Reg(p)
-	if err != nil {
-		return
-	}
-	p.catchSignal()
-	p.scan()
-	err = rpc.Run(port)
-	cli.Check(err)
+	client := &types.Master{}
+	hub := cli.NewRpcHub(args, master, client)
+	hub.Run()
 }
 
 func (p *Master) Fetch(url string) error {
@@ -68,14 +58,11 @@ func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
 	return
 }
 
-var count = 0
 func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
 	fmt.Printf("appending %v\n", info)
 	p.locker.Lock()
 	defer p.locker.Unlock()
 
-	count ++;
-	fmt.Printf("[count:%d]\n", count)
 	p.slaves[slave] = time.Now().UnixNano()
 
 	if p.dones[info.Url] {
@@ -114,24 +101,14 @@ func (p *Master) Pop(slave string) (info types.TaskInfo, err error) {
 	return
 }
 
-func (p *Master) Register(addr, slaveName string) (err error) {
-	var slave Slave
-	err = rpc.NewClient(addr).Reg(&slave, &SlaveTrait{})
+func (p *Master) Register(addr, slave string) (err error) {
+	sc := &types.Slave{}
+	err = rpc.NewClient(addr).Reg(sc)
 	if err != nil {
 		return
 	}
-	p.slavesRemote[slaveName] = slave
+	p.slavesRemote[slave] = sc
 	return
-}
-
-func (p *Master) Trait() map[string][]string {
-	st := slave.MasterTrait{}
-	trait := st.Trait()
-	trait["Fetch"] = []string{"url"}
-	trait["Search"] = []string{"key"}
-	trait["Slaves"] = []string{}
-	trait["Dones"] = []string{}
-	return trait
 }
 
 func NewMaster() *Master {
@@ -140,7 +117,7 @@ func NewMaster() *Master {
 		dones: make(map[string]bool),
 		doings: make(map[string]types.TaskInfo),
 		slaves: make(map[string]int64),
-		slavesRemote: make(map[string]Slave),
+		slavesRemote: make(map[string]*types.Slave),
 		donesFile: NewData("donesFile.txt"),
 		doingsFile: NewData("doingFile.txt"),
 		tasksFile: NewData("tasksFile.txt"),
@@ -156,24 +133,11 @@ type Master struct {
 	doings map[string]types.TaskInfo
 	searchTasks map[string]types.TaskInfo
 	slaves map[string]int64
-	slavesRemote map[string]Slave
+	slavesRemote map[string]*types.Slave
 	donesFile	Data
 	doingsFile	Data
 	tasksFile	Data
 	locker sync.Mutex
-}
-
-type Slave struct {
-	Search func(key string)(ret [][]string, err error)
-}
-
-func (p *SlaveTrait) Trait() map[string][]string {
-	return map[string][]string {
-		"Search": {"key"},
-	}
-}
-
-type SlaveTrait struct {
 }
 
 var ErrNoTask = errors.New("no task")
