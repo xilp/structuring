@@ -14,13 +14,6 @@ type Task interface {
 	Run(appender Appender) error
 }
 
-type SongInfo struct {
-	Version string
-	Url string
-	SongName, Singer, Album, IssueDate string
-	IssueCompany, Note, SongLyric string
-}
-
 type Appender func(info TaskInfo) error
 
 func NewTaskInfo(url string, typ string, weight int) TaskInfo {

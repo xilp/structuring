@@ -11,6 +11,7 @@ import (
 	"ember/http/rpc"
 	"ember/structuring/slave"
 	"ember/structuring/types"
+	"encoding/json"
 )
 
 func Run(args []string) {
@@ -36,17 +37,24 @@ func (p *Master) Fetch(url string) error {
 }
 
 func (p *Master) Search(key string) (ret string, err error) {
-	str := ""
+	var res [][]string
+	var x [][][]string
 	for i, _ := range p.slavesRemote {
 		if i != "master" && i != "rpush" {
-			ret, err = p.slavesRemote[i].Search(key)
+			res, err = p.slavesRemote[i].Search(key)
 			if err != nil {
 			} else {
-				str = str + ret
+				x = append(x, res)
 			}
+
 		}
 	}
-	return "master:" + str, err
+	inData, err := json.Marshal(x)
+	if err != nil {
+		return "", err
+	}
+	//fmt.Fprintf(os.Stderr, "[x:%#v]\n", x)
+	return string(inData), err
 }
 
 func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
@@ -156,7 +164,7 @@ type Master struct {
 }
 
 type Slave struct {
-	Search func(key string)(ret string, err error)
+	Search func(key string)(ret [][]string, err error)
 }
 
 func (p *SlaveTrait) Trait() map[string][]string {

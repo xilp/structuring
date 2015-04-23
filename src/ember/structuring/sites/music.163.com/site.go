@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"io"
 	//"fmt"
 )
 
@@ -36,7 +37,11 @@ func (p *Song) Crawl() (ret []string, err error) {
 	if pv == nil || err != nil {
 		return nil, err
 	}
-	p.site.Write(p.url, pv)
+	err = p.site.Write(p.url, pv)
+	if err != nil {
+		println(err.Error())
+		return
+	}
 	return p.site.ExtractUrl(body)
 }
 
@@ -63,6 +68,13 @@ func (p *Site) FetchHtml(url string) (ret []byte, err error) {
 	return p.html.fetch(url)
 }
 
+type SongInfo struct {
+	Version string
+	Url string
+	SongName, Singer, Album, IssueDate string
+	IssueCompany, Note, SongLyric string
+}
+
 func (p *Site) ParseHtml(body []byte) (ret []string, err error) {
 	return p.html.parse(body)
 }
@@ -77,26 +89,31 @@ func (p *Site) Write(url string, ret []string) (err error) {
 		str = str + "\t" + v
 	}
 	str = str + "\n"
-	return p.data.write(str, 0)
+	return p.data.write([]byte(str), 0)
 }
 
 func (p *Site) Search(key string) (ret [][]string, err error) {
-	fileData, err := p.data.readForSearching(0)
-	reg := regexp.MustCompile(`[^\n]+`)
-	line := reg.FindAllString(string(fileData), -1)
+	scanner, err := p.data.file.OpenScanner()
+	if err != nil {
+		return
+	}
+	reg := regexp.MustCompile(`[^\t\n]+`)
 	var x [][]string
-	for _, v := range line {
-		split := regexp.MustCompile(`[^\t]+`)
-		word := split.FindAllString(v, -1)
-		//fmt.Printf("word:%#v\n", word)
-		//fmt.Printf("url:%#v\n", word[1])
-		//fmt.Printf("songName:%#v\n", word[2])
+	for {
+		buf, err := scanner.Scan()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			break
+		}
+		line := string(buf)
+		word := reg.FindAllString(line, -1)
 		if strings.Contains(word[2], key) {
 			x = append(x, word)
 		}
 	}
-	//fmt.Printf("[len(x):%d]\n", len(x))
-	//fmt.Printf("[x:%#v]\n", x)
+	scanner.Close()
 	return x, err
 }
 
