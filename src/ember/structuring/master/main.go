@@ -2,14 +2,13 @@ package master
 
 import (
 	"errors"
-	"fmt"
+	//"fmt"
 	"math"
 	"sync"
 	"time"
 	"ember/cli"
 	"ember/http/rpc"
 	"ember/structuring/types"
-	"encoding/json"
 )
 
 func Run(args []string) {
@@ -26,25 +25,21 @@ func (p *Master) Fetch(url string) error {
 	return p.Push("master", types.NewTaskInfo(url, "index", math.MaxInt64))
 }
 
-func (p *Master) Search(key string) (ret string, err error) {
+func (p *Master) Search(key string) (ret [][][]string, err error) {
 	var res [][]string
 	var x [][][]string
 	for i, _ := range p.slavesRemote {
 		if i != "master" && i != "rpush" {
 			res, err = p.slavesRemote[i].Search(key)
 			if err != nil {
+				println(err.Error())
 			} else {
 				x = append(x, res)
 			}
 
 		}
 	}
-	inData, err := json.Marshal(x)
-	if err != nil {
-		return "", err
-	}
-	//fmt.Fprintf(os.Stderr, "[x:%#v]\n", x)
-	return string(inData), err
+	return x, err
 }
 
 func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
@@ -59,7 +54,7 @@ func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
 }
 
 func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
-	fmt.Printf("appending %v\n", info)
+	//fmt.Printf("appending %v\n", info)
 	p.locker.Lock()
 	defer p.locker.Unlock()
 

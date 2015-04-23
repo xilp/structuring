@@ -17,7 +17,7 @@ func (p *Master) scan() {
 			}
 			p.save()
 			time.Sleep(time.Minute)
-			fmt.Fprintf(os.Stderr, "hello\n")
+			fmt.Fprintf(os.Stderr, "scan every minute\n")
 		}
 	}()
 }
