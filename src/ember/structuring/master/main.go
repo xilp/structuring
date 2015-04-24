@@ -2,6 +2,7 @@ package master
 
 import (
 	"errors"
+	"flag"
 	//"fmt"
 	"math"
 	"sync"
@@ -9,10 +10,15 @@ import (
 	"ember/cli"
 	"ember/http/rpc"
 	"ember/structuring/types"
+	"os"
 )
 
 func Run(args []string) {
-	master := NewMaster()
+	var path string
+	flag := flag.NewFlagSet("master", flag.ContinueOnError)
+	flag.StringVar(&path, "path", "master", "path to store data")
+
+	master := NewMaster(path)
 	master.catchSignal()
 	master.scan()
 
@@ -106,16 +112,20 @@ func (p *Master) Register(addr, slave string) (err error) {
 	return
 }
 
-func NewMaster() *Master {
+func NewMaster(root string) *Master {
+	err := os.MkdirAll(root, 0755)
+	if err != nil {
+		println(err.Error())
+	}
 	p := &Master {
 		todos: make(map[string]bool),
 		dones: make(map[string]bool),
 		doings: make(map[string]types.TaskInfo),
 		slaves: make(map[string]int64),
 		slavesRemote: make(map[string]*types.Slave),
-		donesFile: NewData("donesFile.txt"),
-		doingsFile: NewData("doingFile.txt"),
-		tasksFile: NewData("tasksFile.txt"),
+		donesFile: NewData(root + "/" + "donesFile.txt"),
+		doingsFile: NewData(root + "/" + "doingFile.txt"),
+		tasksFile: NewData(root + "/" + "tasksFile.txt"),
 	}
 	p.load()
 	return p
