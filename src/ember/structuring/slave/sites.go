@@ -4,6 +4,8 @@ import (
 	"ember/structuring/types"
 	m1c "ember/structuring/sites/music.163.com"
 	"os"
+	"regexp"
+	"strings"
 )
 
 func (p *Sites) NewTask(info types.TaskInfo) (types.Task) {
@@ -22,7 +24,13 @@ func (p *Sites) NewTask(info types.TaskInfo) (types.Task) {
 
 func Domain(url string) string {
 	// TODO
-	return "music.163.com"
+	reg := regexp.MustCompile(`http://[^/:]+`)
+	domain := reg.FindString(url)
+	if domain  == "" {
+		return "music.163.com"
+	}
+	domain  = strings.Replace(domain, "http://", "", -1)
+	return domain
 }
 
 func (p *Sites) Register(domain string) (err error) {
