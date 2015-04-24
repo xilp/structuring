@@ -73,7 +73,7 @@ func (p *Slave) catchSignal() {
 	go func() {
 		for sig := range c {
 			fmt.Printf("received ctrl+c(%v)\n", sig)
-			for _, v := range p.sites {
+			for _, v := range p.sites.sites {
 				v.site.Flush()
 			}
 			os.Exit(0)
@@ -116,7 +116,7 @@ func NewSlave(addr string, id string, path string, host, port string) (p *Slave,
 	if err != nil {
 		return
 	}
-	p = &Slave{id, path, NewSites(), master}
+	p = &Slave{id, path, NewSites(path), master}
 	err = p.master.Register("http://" + host + ":" + port, id)
 	if err != nil {
 		return
@@ -127,7 +127,7 @@ func NewSlave(addr string, id string, path string, host, port string) (p *Slave,
 func (p *Slave) Search(key string) (ret [][]string, err error) {
 	//TODO
 	var x [][]string
-	for i, v := range p.sites {
+	for i, v := range p.sites.sites {
 		_ = i
 		x, err = v.site.Search(key)
 		if err != nil {

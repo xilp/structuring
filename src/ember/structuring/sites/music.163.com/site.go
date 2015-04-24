@@ -122,13 +122,14 @@ func (p *Site) Serialize() (ret []byte, err error) {
 	return ret, err
 }
 
-func New() *Site {
+func New(root string) *Site {
 	domain := "music.163.com"
-	err := os.MkdirAll(domain, 0755)
+	path := root + "/" + domain
+	err := os.MkdirAll(path, 0755)
 	if err != nil {
 		println(err.Error())
 	}
-	return &Site{domain, "01", NewUrl(), NewHtml(), NewCrawl(), NewData(domain)}
+	return &Site{domain, "01", NewUrl(), NewHtml(), NewCrawl(), NewData(path)}
 }
 
 func (p *Site) GetCookie() (cookie string, err error) {
