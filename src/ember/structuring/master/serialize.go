@@ -80,7 +80,7 @@ func (p *Master) Tasks() (tasks []types.TaskInfo, err error) {
 
 func (p *Master) UnTasks(tasks []types.TaskInfo) (err error) {
 	//p.tasks = tasks
-	for _, v :=range tasks {
+	for _, v := range tasks {
 		p.LoadPush("load", v)
 	}
 	return err

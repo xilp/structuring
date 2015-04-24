@@ -103,6 +103,11 @@ func (p *Master) Pop(slave string) (info types.TaskInfo, err error) {
 }
 
 func (p *Master) Register(addr, slave string) (err error) {
+	slave = addr
+	if p.slavesRemote[slave] != nil {
+		return
+	}
+
 	sc := &types.Slave{}
 	err = rpc.NewClient(addr).Reg(sc)
 	if err != nil {
