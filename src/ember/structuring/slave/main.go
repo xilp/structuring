@@ -84,6 +84,7 @@ func (p *Slave) catchSignal() {
 func (p *Slave) invoke() (err error) {
 	var task types.Task
 	var info types.TaskInfo
+	var i = 0
 	for {
 		info, err = p.master.Pop(p.id)
 		if err != nil {
@@ -103,6 +104,11 @@ func (p *Slave) invoke() (err error) {
 		}
 		fmt.Printf("done: %v\n", info)
 		p.master.Done(p.id, info)
+		i ++
+		if i > 100 {
+			i = 0
+			p.master.Register("http://" + p.host + ":" + p.port, p.id)
+		}
 	}
 }
 
@@ -116,7 +122,7 @@ func NewSlave(addr string, id string, path string, host, port string) (p *Slave,
 	if err != nil {
 		return
 	}
-	p = &Slave{id, path, NewSites(path), master}
+	p = &Slave{id, host, port, path, NewSites(path), master}
 	err = p.master.Register("http://" + host + ":" + port, id)
 	if err != nil {
 		return
@@ -142,6 +148,8 @@ func (p *Slave) Search(key string) (ret [][]string, err error) {
 
 type Slave struct {
 	id string
+	host string
+	port string
 	path string
 	sites Sites
 	master types.Master
