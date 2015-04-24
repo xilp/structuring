@@ -57,7 +57,7 @@ func (p *Site) NewTask(info types.TaskInfo) types.Task {
 	return &Song{p, info.Url}
 }
 
-func (p *Site) Flush()(err error) {
+func (p *Site) Close()(err error) {
 	p.data.file.Flush()
 	return p.data.file.Close()
 }
@@ -122,14 +122,15 @@ func (p *Site) Serialize() (ret []byte, err error) {
 	return ret, err
 }
 
-func New(root string) *Site {
+func New(root string) (p *Site, err error) {
 	domain := "music.163.com"
 	path := root + "/" + domain
-	err := os.MkdirAll(path, 0755)
+	err = os.MkdirAll(path, 0755)
 	if err != nil {
-		println(err.Error())
+		return
 	}
-	return &Site{domain, "01", NewUrl(), NewHtml(), NewCrawl(), NewData(path)}
+	p = &Site{domain, "01", NewUrl(), NewHtml(), NewCrawl(), NewData(path)}
+	return
 }
 
 func (p *Site) GetCookie() (cookie string, err error) {
