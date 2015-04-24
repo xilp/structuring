@@ -25,8 +25,8 @@ func (p *Data) write(line []byte, nid int) (err error) {
 	return
 }
 
-func NewData() Data{
-	file, err := NewRawFile("")
+func NewData(path string) Data{
+	file, err := NewRawFile(path)
 	if err != nil {
 		println(err.Error())
 	}

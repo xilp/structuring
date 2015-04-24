@@ -23,18 +23,23 @@ func Run(args []string) {
 	var id string
 	var concurrent int
 	var pause int
+	var path string
+	var host, port string
 	flag := flag.NewFlagSet("slave", flag.ContinueOnError)
 	flag.StringVar(&master, "master", "http://127.0.0.1:9000", "master address")
 	flag.StringVar(&id, "id", "", "slave id. gen a random one if nil")
 	flag.IntVar(&concurrent, "conc", 5, "goroutine number")
 	flag.IntVar(&pause, "i", 5, "pause interval if no task, in second")
+	flag.StringVar(&path, "path", "data", "path to store data")
+	flag.StringVar(&host, "host", "127.0.0.1", "slave ip register to master")
+	flag.StringVar(&port, "port", "8888", "slave port regist to master")
 	cli.ParseFlag(flag, args1, "master", "id", "conc")
 
 	if id == "" {
 		id = strconv.Itoa(rand.Int())
 	}
 
-	slave, err := NewSlave(master, id)
+	slave, err := NewSlave(master, id, path, host, port)
 	cli.Check(err)
 	slave.sites.Register("music.163.com")
 	slave.run(concurrent)
@@ -105,14 +110,14 @@ func (p *Slave) append(info types.TaskInfo) (err error) {
 	return p.master.Push(p.id, info)
 }
 
-func NewSlave(addr string, id string) (p *Slave, err error) {
+func NewSlave(addr string, id string, path string, host, port string) (p *Slave, err error) {
 	var master types.Master
 	err = rpc.NewClient(addr).Reg(&master)
 	if err != nil {
 		return
 	}
-	p = &Slave{id, NewSites(), master}
-	err = p.master.Register("http://127.0.0.1:8888", id)
+	p = &Slave{id, path, NewSites(), master}
+	err = p.master.Register("http://" + host + ":" + port, id)
 	if err != nil {
 		return
 	}
@@ -137,6 +142,7 @@ func (p *Slave) Search(key string) (ret [][]string, err error) {
 
 type Slave struct {
 	id string
+	path string
 	sites Sites
 	master types.Master
 }

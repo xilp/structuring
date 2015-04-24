@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"io"
+	"os"
 	//"fmt"
 )
 
@@ -122,7 +123,12 @@ func (p *Site) Serialize() (ret []byte, err error) {
 }
 
 func New() *Site {
-	return &Site{"music.163.com", "01", NewUrl(), NewHtml(), NewCrawl(), NewData()}
+	domain := "music.163.com"
+	err := os.MkdirAll(domain, 0755)
+	if err != nil {
+		println(err.Error())
+	}
+	return &Site{domain, "01", NewUrl(), NewHtml(), NewCrawl(), NewData(domain)}
 }
 
 func (p *Site) GetCookie() (cookie string, err error) {

@@ -50,15 +50,15 @@ func (p *RawFile) Flush() (err error) {
 	return err
 }
 
-func NewRawFile(name string) (file RawFile, err error) {
-	file.fileName = "music.163.com." + "binlog.txt"
+func NewRawFile(path string) (file RawFile, err error) {
+	file.fileName = path + "/binlog.txt"
 	file.fd, err = os.OpenFile(file.fileName, os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
 	if err != nil {
 		println(err.Error())
 		return
 	}
 
-	file.backupFileName = "music.163.com." + "binlog.backup"
+	file.backupFileName = path + "/binlog.backup"
 	file.backupFd, err = os.OpenFile(file.backupFileName, os.O_RDWR | os.O_APPEND | os.O_CREATE, 0640)
 	if err != nil {
 		println(err.Error())
