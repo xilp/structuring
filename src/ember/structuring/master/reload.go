@@ -3,7 +3,7 @@ package master
 import (
 	"ember/structuring/types"
 	"time"
-	"fmt"
+	//"fmt"
 )
 
 func (p *Master) save() (err error) {
@@ -98,7 +98,7 @@ func (p *Master) load() (err error) {
 }
 
 func (p *Master) LoadPush(slave string, info types.TaskInfo) (err error) {
-	fmt.Printf("appending %v\n", info)
+	//fmt.Printf("appending %v\n", info)
 	p.slaves[slave] = time.Now().UnixNano()
 
 	if p.dones[info.Url] {

@@ -2,18 +2,23 @@ package master
 
 import (
 	"errors"
-	"fmt"
+	"flag"
+	//"fmt"
 	"math"
 	"sync"
 	"time"
 	"ember/cli"
 	"ember/http/rpc"
 	"ember/structuring/types"
-	"encoding/json"
+	"os"
 )
 
 func Run(args []string) {
-	master := NewMaster()
+	var path string
+	flag := flag.NewFlagSet("master", flag.ContinueOnError)
+	flag.StringVar(&path, "path", "master", "path to store data")
+
+	master := NewMaster(path)
 	master.catchSignal()
 	master.scan()
 
@@ -26,25 +31,21 @@ func (p *Master) Fetch(url string) error {
 	return p.Push("master", types.NewTaskInfo(url, "index", math.MaxInt64))
 }
 
-func (p *Master) Search(key string) (ret string, err error) {
+func (p *Master) Search(key string) (ret [][][]string, err error) {
 	var res [][]string
 	var x [][][]string
 	for i, _ := range p.slavesRemote {
 		if i != "master" && i != "rpush" {
 			res, err = p.slavesRemote[i].Search(key)
 			if err != nil {
+				println(err.Error())
 			} else {
 				x = append(x, res)
 			}
 
 		}
 	}
-	inData, err := json.Marshal(x)
-	if err != nil {
-		return "", err
-	}
-	//fmt.Fprintf(os.Stderr, "[x:%#v]\n", x)
-	return string(inData), err
+	return x, err
 }
 
 func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
@@ -59,7 +60,7 @@ func (p *Master) Done(slave string, info types.TaskInfo) (err error) {
 }
 
 func (p *Master) Push(slave string, info types.TaskInfo) (err error) {
-	fmt.Printf("appending %v\n", info)
+	//fmt.Printf("appending %v\n", info)
 	p.locker.Lock()
 	defer p.locker.Unlock()
 
@@ -111,16 +112,20 @@ func (p *Master) Register(addr, slave string) (err error) {
 	return
 }
 
-func NewMaster() *Master {
+func NewMaster(root string) *Master {
+	err := os.MkdirAll(root, 0755)
+	if err != nil {
+		println(err.Error())
+	}
 	p := &Master {
 		todos: make(map[string]bool),
 		dones: make(map[string]bool),
 		doings: make(map[string]types.TaskInfo),
 		slaves: make(map[string]int64),
 		slavesRemote: make(map[string]*types.Slave),
-		donesFile: NewData("donesFile.txt"),
-		doingsFile: NewData("doingFile.txt"),
-		tasksFile: NewData("tasksFile.txt"),
+		donesFile: NewData(root + "/" + "donesFile.txt"),
+		doingsFile: NewData(root + "/" + "doingFile.txt"),
+		tasksFile: NewData(root + "/" + "tasksFile.txt"),
 	}
 	p.load()
 	return p
