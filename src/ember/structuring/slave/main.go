@@ -17,7 +17,7 @@ import (
 )
 
 func Run(args []string) {
-	args1, args2 := cli.SplitArgs(args, "master", "id", "conc", "i", "path", "host", "port")
+	args1, args2 := cli.SplitArgs(args, "master", "id", "conc", "i", "path", "myhost", "myport")
 
 	var master string
 	var id string
@@ -32,8 +32,8 @@ func Run(args []string) {
 	flag.IntVar(&concurrent, "conc", 5, "goroutine number")
 	flag.IntVar(&pause, "i", 5, "pause interval if no task, in second")
 	flag.StringVar(&path, "path", "data", "path to store data")
-	flag.StringVar(&host, "host", "127.0.0.1", "slave ip register to master")
-	flag.StringVar(&port, "port", "8888", "slave port regist to master")
+	flag.StringVar(&host, "myhost", "127.0.0.1", "slave ip register to master")
+	flag.StringVar(&port, "myport", "8888", "slave port regist to master")
 	cli.ParseFlag(flag, args1, "master", "id", "conc")
 
 	m1c, err := m1c.New(path)
@@ -51,7 +51,7 @@ func Run(args []string) {
 
 	holder := make(chan os.Signal)
 	signal.Notify(holder, os.Interrupt, os.Kill, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-holder
+	_ = <-holder
 	slave.Close()
 }
 
